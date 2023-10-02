@@ -17,9 +17,10 @@ const defaultConfig = {
   zone: "asia-east1-b",
   instanceName: "test-sythanh",
   machineType: "e2-micro",
-  sourceImage: "projects/debian-cloud/global/images/family/debian-10",
+  // sourceImage: "projects/debian-cloud/global/images/family/debian-10",
+  sourceImage: "projects/f2app-154608/global/machineImages/code-sep-minoring",
   networkName: "global/networks/default",
-  diskSizeGb: 10,
+  diskSizeGb: 30,
 };
 
 const gc = {
@@ -94,13 +95,24 @@ const gc = {
       project: defaultConfig.projectId,
     });
 
-    const arr = [];
+    const arr: any[] = [];
+    const promises = [];
+
     for await (const [zone, instancesObject] of aggListRequest) {
       const instances = instancesObject.instances;
       if (instances && instances.length > 0) {
-        arr.push({ zone: zone.split("/").pop(), instances });
+        promises.push(
+          Promise.all(
+            instances.map(async (i) => {
+              const zoneName = zone.split("/").pop();
+              arr.push({ ...i, zoneName });
+            })
+          )
+        );
       }
     }
+
+    await Promise.all(promises);
     return arr;
   },
 
@@ -123,14 +135,64 @@ const gc = {
       instancesClient.close();
     }
   },
+  containsEmail: function (instance: any, targetEmail: string) {
+    if (instance.metadata && instance.metadata.items) {
+      const managersMetadata = instance.metadata.items.find(
+        (item: any) => item.key === "managers"
+      );
+
+      if (managersMetadata && managersMetadata.value) {
+        const emailList = managersMetadata.value;
+        const emails = emailList.split(";");
+        return emails.includes(targetEmail);
+      }
+    }
+    return false;
+  },
+  getInstancesByEmail: async function (email: string) {
+    const allInstances = await this.listAllInstances();
+    const filteredInstances = allInstances.filter((instance) =>
+      this.containsEmail(instance, email)
+    );
+    return filteredInstances;
+  },
+  getInstanceListByMetadata: async function (
+    metadataKey: string,
+    metadataValue: string
+  ) {
+    const allInstances = await this.listAllInstances();
+    const filteredInstances = allInstances.filter((instance) => {
+      if (instance.metadata && instance.metadata.items) {
+        const metadataItem = instance.metadata.items.find(
+          (item: any) =>
+            item.key === metadataKey && item.value === metadataValue
+        );
+        return metadataItem !== undefined;
+      }
+      return false;
+    });
+    return filteredInstances;
+  },
+  getInstanceListByMetadataExist: async function (...metadataKeys: any[]) {
+    const allInstances = await this.listAllInstances();
+    const filteredInstances = allInstances.filter((instance) => {
+      if (instance.metadata && instance.metadata.items) {
+        const hasMatchingMetadata = metadataKeys.some((key) =>
+          instance.metadata.items.some((item: any) => item.key === key)
+        );
+        return hasMatchingMetadata;
+      }
+      return false;
+    });
+    return filteredInstances;
+  },
+
   getInstancesByName: async function (name: string) {
     const allInstances = await this.listAllInstances();
 
-    for (const zone of allInstances) {
-      for (const instance of zone.instances) {
-        if (instance.name == name) {
-          return Promise.resolve(zone);
-        }
+    for (const instance of allInstances) {
+      if (instance.name == name) {
+        return Promise.resolve(instance);
       }
     }
     return null;
