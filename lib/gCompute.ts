@@ -1,5 +1,7 @@
 import {
   InstancesClient,
+  MachineTypesClient,
+  RegionsClient,
   ZoneOperationsClient,
   ZonesClient,
   protos,
@@ -14,19 +16,75 @@ const credentials = {
 
 const defaultConfig = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+  region: "asia-southeast1",
   zone: "asia-east1-b",
-  instanceName: "test-sythanh",
-  machineType: "e2-micro",
+  machineType: "e2-small",
   // sourceImage: "projects/debian-cloud/global/images/family/debian-10",
   sourceImage: "projects/f2app-154608/global/machineImages/code-sep-minoring",
   networkName: "global/networks/default",
   diskSizeGb: 30,
 };
 
+const getRegions = async function () {
+  const regionsClient = new RegionsClient({ credentials });
+
+  try {
+    const [regions] = await regionsClient.list({
+      project: defaultConfig.projectId,
+    });
+
+    return regions;
+  } catch (err) {
+    console.error(`Error fetching regions: ${err}`);
+    throw err;
+  } finally {
+    regionsClient.close();
+  }
+};
+
+const getZones = async function () {
+  const zonesClient = new ZonesClient({ credentials });
+
+  try {
+    const [zones] = await zonesClient.list({
+      project: defaultConfig.projectId,
+    });
+
+    return zones;
+  } catch (err) {
+    console.error(`Error fetching zones: ${err}`);
+    throw err;
+  } finally {
+    zonesClient.close();
+  }
+};
+
+const getMachineTypes = async function (zone: string) {
+  const machineTypesClient = new MachineTypesClient({ credentials });
+
+  try {
+    const [machineTypes] = await machineTypesClient.list({
+      project: defaultConfig.projectId,
+      zone: zone,
+    });
+
+    return machineTypes;
+  } catch (err) {
+    console.error(`Error fetching machine types: ${err}`);
+    throw err;
+  } finally {
+    machineTypesClient.close();
+  }
+};
+
 const gc = {
+  getRegions,
+  getZones,
+  getMachineTypes,
   createInstance: async function (
     instanceName: string,
     zone: string = defaultConfig.zone,
+    region: string = defaultConfig.region,
     diskSizeGb: number = defaultConfig.diskSizeGb
   ) {
     const instancesClient = new InstancesClient({
@@ -36,54 +94,113 @@ const gc = {
       {
         instanceResource: {
           name: instanceName,
+          canIpForward: true,
+          confidentialInstanceConfig: {
+            enableConfidentialCompute: false,
+          },
+          deletionProtection: false,
+          description: "",
           disks: [
             {
-              // Describe the size and source image of the boot disk to attach to the instance.
-              initializeParams: {
-                diskSizeGb,
-                sourceImage: defaultConfig.sourceImage,
-              },
               autoDelete: true,
               boot: true,
+              deviceName: "instance-uet",
+              initializeParams: {
+                diskSizeGb: "30",
+                diskType:
+                  "projects/f2app-154608/zones/us-central1-a/diskTypes/pd-balanced",
+                labels: {},
+              },
+              mode: "READ_WRITE",
               type: "PERSISTENT",
             },
           ],
-          machineType: `zones/${defaultConfig.zone}/machineTypes/${defaultConfig.machineType}`,
+          displayDevice: {
+            enableDisplay: false,
+          },
+          guestAccelerators: [],
+          instanceEncryptionKey: {},
+          keyRevocationActionType: "NONE",
+          labels: {
+            "goog-ec-src": "vm_add-rest",
+          },
+          machineType: `zones/${zone}/machineTypes/${defaultConfig.machineType}`,
+          metadata: {
+            items: [
+              { key: "domain", value: `${instanceName}.nguyensythanh.id.vn` },
+              { key: "managers", value: "a@123.com;test@gmail.com" },
+            ],
+          },
+          minCpuPlatform: "Automatic",
           networkInterfaces: [
             {
-              // Use the network interface provided in the networkName argument.
-              name: defaultConfig.networkName,
               accessConfigs: [
                 {
-                  name: "external-nat",
-                  type: "ONE_TO_ONE_NAT", // This type assigns an external IP address.
+                  name: "External NAT",
+                  networkTier: "PREMIUM",
                 },
+              ],
+              stackType: "IPV4_ONLY",
+            },
+          ],
+          params: {
+            resourceManagerTags: {},
+          },
+          reservationAffinity: {
+            consumeReservationType: "ANY_RESERVATION",
+          },
+          scheduling: {
+            automaticRestart: true,
+            onHostMaintenance: "MIGRATE",
+            provisioningModel: "STANDARD",
+          },
+          serviceAccounts: [
+            {
+              email: "366344313992-compute@developer.gserviceaccount.com",
+              scopes: [
+                "https://www.googleapis.com/auth/devstorage.read_only",
+                "https://www.googleapis.com/auth/logging.write",
+                "https://www.googleapis.com/auth/monitoring.write",
+                "https://www.googleapis.com/auth/servicecontrol",
+                "https://www.googleapis.com/auth/service.management.readonly",
+                "https://www.googleapis.com/auth/trace.append",
               ],
             },
           ],
+          shieldedInstanceConfig: {
+            enableIntegrityMonitoring: true,
+            enableSecureBoot: false,
+            enableVtpm: true,
+          },
+          sourceMachineImage: `projects/${defaultConfig.projectId}/global/machineImages/code-sep-minoring`,
+          tags: {
+            items: ["http-server"],
+          },
+          zone: `projects/${defaultConfig.projectId}/zones/${zone}`,
         },
         project: process.env.GOOGLE_CLOUD_PROJECT_ID,
         zone: zone,
       };
+
     console.log(
-      `Creating the ${defaultConfig.instanceName} instance in ${defaultConfig.zone}...`
+      `Creating the ${instanceName} instance in ${defaultConfig.zone}...`
     );
     const [response] = await instancesClient.insert(defaultInsertResource);
-    console.log(
-      "🚀 ~ file: gCompute.ts:43 ~ createInstance ~ response:",
-      response
-    );
+    console.log("🚀 ~ file: gCompute.ts:130 ~ response:", response);
 
     let operation: any = response.latestResponse;
 
     const operationsClient = new ZoneOperationsClient({ credentials });
     // Wait for the create operation to complete.
     while (operation.status !== "DONE") {
+      console.log("check status");
+
       [operation] = await operationsClient.wait({
         operation: operation.name,
         project: defaultConfig.projectId,
         zone: operation.zone.split("/").pop(),
       });
+      console.log("🚀 ~ file: gCompute.ts:142 ~ operation:", operation);
     }
     return await this.getInstanceInfo(zone, instanceName);
   },

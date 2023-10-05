@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const instanceName = p.get("instanceName");
 
   const session = await getServerSession(authOptions);
-  if (!zone || !instanceName) {
+  if (!zone || !instanceName || !session) {
     return NextResponse.error();
   }
   const instance = await gc.getInstanceInfo(zone, instanceName);

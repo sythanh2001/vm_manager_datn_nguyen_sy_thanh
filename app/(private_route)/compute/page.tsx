@@ -6,8 +6,17 @@ import axios from "axios";
 import { InstanceInfo } from "@/lib/gComputeInterface";
 import Link from "next/link";
 
-export interface IDashboardProps {}
-
+export interface IComputeProps {}
+function Controller() {
+  return (
+    <div className="flex space-x-9">
+      <div className="text-lg font-bold">Dashboard</div>
+      <Link href={"/compute/create"} className="btn btn-sm btn-primary">
+        Create Instance
+      </Link>
+    </div>
+  );
+}
 function InstanceList() {
   const [colTitles] = React.useState([
     "Status",
@@ -126,13 +135,14 @@ function InstanceList() {
   );
 }
 
-export default function Dashboard(props: IDashboardProps) {
+export default function Compute(props: IComputeProps) {
   const { data, status } = useSession();
-  console.log("🚀 ~ file: page.tsx:8 ~ Dashboard ~ data:", data);
+
   const isAuth = status == "authenticated";
 
   return (
     <div className="ml-32 mr-32">
+      <Controller></Controller>
       <InstanceList></InstanceList>
     </div>
   );
