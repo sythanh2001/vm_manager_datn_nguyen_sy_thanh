@@ -1,5 +1,6 @@
 import {
   InstancesClient,
+  MachineImagesClient,
   MachineTypesClient,
   RegionsClient,
   ZoneOperationsClient,
@@ -24,7 +25,22 @@ const defaultConfig = {
   networkName: "global/networks/default",
   diskSizeGb: 30,
 };
+const getMachineImageList = async function () {
+  const machineImagesClient = new MachineImagesClient({ credentials });
 
+  try {
+    const [machineImages] = await machineImagesClient.list({
+      project: defaultConfig.projectId,
+    });
+
+    return machineImages;
+  } catch (err) {
+    console.error(`Error fetching machine images: ${err}`);
+    throw err;
+  } finally {
+    machineImagesClient.close();
+  }
+};
 const getRegions = async function () {
   const regionsClient = new RegionsClient({ credentials });
 
@@ -81,6 +97,7 @@ const gc = {
   getRegions,
   getZones,
   getMachineTypes,
+  getMachineImageList,
   createInstance: async function (
     instanceName: string,
     zone: string = defaultConfig.zone,

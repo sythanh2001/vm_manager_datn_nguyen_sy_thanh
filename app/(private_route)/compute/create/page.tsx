@@ -6,6 +6,7 @@ import axios from "axios";
 import { protos } from "@google-cloud/compute";
 import { v4 } from "uuid";
 import _, { Dictionary } from "lodash";
+import { useRouter } from "next/navigation";
 export interface ICreateProps {}
 
 export interface MachineTypeGroup {
@@ -15,62 +16,96 @@ export interface MachineTypeGroup {
   memory: string;
 }
 
-function CollapseTable(
-  title: string,
-  cols: string[],
-  data: any[],
-  rowkeys: string[],
-  radioName: string,
-  onRadioCheckedChange: (value: string) => {},
-  defaultChecked?: boolean
-) {
-  const [radioSelected, setRadioSelected] = React.useState<string>();
+function CollapseTable({
+  title,
+  cols,
+  data,
+  rowkeys: rowKeys,
+  radioName,
+  onRadioCheckedChange,
+  defaultChecked = true,
+  noDataText = "Loading...",
+}: {
+  title: string;
+  cols: string[];
+  data?: any[];
+  rowkeys: { key: string; render?: (value: any) => string }[];
+  radioName: string;
+  onRadioCheckedChange?: (value: any) => void;
+  defaultChecked?: boolean;
+  noDataText?: string;
+}) {
+  const [radioSelected, setRadioSelected] = React.useState<any>();
   return (
-    <div className="collapse bg-base-100">
+    <div className="collapse collapse-plus bg-base-100">
       <input type="checkbox" defaultChecked />
       <div className="collapse-title text-xl font-medium">{title}</div>
-      <div className="collapse-content">
-        <div className="overflow-x-auto">
-          <table className="table table-xs">
-            <thead>
-              <tr>
-                <th></th>
-                {cols.map((x) => (
-                  <th key={v4()}>{x}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Row */}
-              {data &&
-                data.map((x) => {
-                  return (
-                    <tr key={v4()}>
-                      <th>
-                        <input
-                          type="radio"
-                          name={radioName}
-                          checked={radioSelected == x.series}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setRadioSelected(e.target.value);
-                              onRadioCheckedChange(e.target.value);
-                            }
-                          }}
-                          value={x.series}
-                          className="checkbox checkbox-primary checkbox-xs"
-                        />
-                      </th>
-                      {rowkeys.map((k) => {
-                        return <td key={v4()}>{x[k]}</td>;
-                      })}
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+      {!data && (
+        <div className="alert">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="stroke-info shrink-0 w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+          <span>{noDataText}</span>
         </div>
-      </div>
+      )}
+      {data && (
+        <div className="collapse-content">
+          <div className="overflow-x-auto">
+            <table className="table table-xs">
+              <thead>
+                <tr>
+                  <th></th>
+                  {cols.map((x) => (
+                    <th key={v4()}>{x}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {/* Row */}
+                {data &&
+                  data.map((x) => {
+                    return (
+                      <tr key={v4()}>
+                        <th>
+                          <input
+                            type="radio"
+                            name={radioName}
+                            checked={radioSelected == x}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setRadioSelected(x);
+                                onRadioCheckedChange && onRadioCheckedChange(x);
+                              }
+                            }}
+                            value={x}
+                            className="checkbox checkbox-primary checkbox-xs"
+                          />
+                        </th>
+                        {rowKeys.map((k) => {
+                          return (
+                            <td key={v4()}>
+                              {!k.render ? x[k.key] : k.render(x[k.key])}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -78,7 +113,7 @@ function CollapseTable(
 export default function Create(props: ICreateProps) {
   const { data, status } = useSession();
   const isAuth = status == "authenticated";
-
+  const router = useRouter();
   //Data
   const [machineListCol] = React.useState([
     "Dòng",
@@ -106,7 +141,7 @@ export default function Create(props: ICreateProps) {
   const clearAllMachineData = () => {
     setMachineGroupSelected(undefined);
     setMachineTypeGroupsDisplay(undefined);
-    setMachineTypeGroupsDisplay(undefined);
+    setMachineTypeSelected(undefined);
     return true;
   };
   //Handler
@@ -154,10 +189,16 @@ export default function Create(props: ICreateProps) {
     setZoneList(zoneList);
     zoneList?.at(0) && onZoneChange(zoneList?.at(0) as string);
   };
-  const onMachineTypeGroupChange = (groupName: string) => {
-    setMachineGroupSelected(groupName);
-  };
 
+  const onMachineTypeGroupChange = React.useCallback((groupName: string) => {
+    console.log(
+      "🚀 ~ file: page.tsx:194 ~ onMachineTypeGroupChange ~ groupName:",
+      groupName
+    );
+    setMachineGroupSelected(groupName);
+  }, []);
+
+  const createVM = () => {};
   React.useEffect(() => {
     axios.get("/api/instance/regions").then(({ data }) => setRegionsList(data));
   }, []);
@@ -165,10 +206,15 @@ export default function Create(props: ICreateProps) {
   return (
     <div className="content-center">
       <div className="form-control ml-52 mr-52 space-y-5">
-        <label className="input-group input-group-vertical">
-          <span>Tên</span>
-          <input type="text" className="input input-bordered" />
-        </label>
+        {/* Name */}
+        <div>
+          <label className="label">
+            <span className="label-text">Tên</span>
+          </label>
+          <input type="text" className="input input-bordered w-full" />
+        </div>
+
+        {/* Region & Zone */}
         <div className="flex space-x-5">
           <div className="flex-1">
             <label className="label">
@@ -217,130 +263,76 @@ export default function Create(props: ICreateProps) {
             </select>
           </div>
         </div>
+
         {/* Machine type groups */}
-        <div className="collapse bg-base-100">
-          <input type="checkbox" defaultChecked={true} />
-          <div className="collapse-title text-xl font-medium">Các nhóm máy</div>
-          <div className="collapse-content">
-            <div className="overflow-x-auto">
-              <table className="table table-xs">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Nhóm</th>
-                    <th>vCPUs</th>
-                    <th>RAM</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Row */}
-                  {machineTypeGroupsDisplay &&
-                    machineTypeGroupsDisplay.map((x) => {
-                      return (
-                        <tr key={v4()}>
-                          <th>
-                            <input
-                              type="radio"
-                              name="radio-machine-group"
-                              checked={machineGroupSelected == x.series}
-                              onChange={(e) =>
-                                e.target.checked == true &&
-                                onMachineTypeGroupChange(e.target.value)
-                              }
-                              value={x.series}
-                              className="checkbox checkbox-primary checkbox-xs"
-                            />
-                          </th>
-                          <td>{x.series.toUpperCase()}</td>
-                          <td>{x.vCPUs}</td>
-                          <td>{x.memory}</td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <CollapseTable
+          title="Các nhóm máy"
+          cols={["Nhóm", "vCPUs", "RAM"]}
+          data={machineTypeGroupsDisplay}
+          radioName="radio-machine-group"
+          rowkeys={[
+            { key: "series", render: (e) => e.toUpperCase() },
+            { key: "vCPUs" },
+            { key: "memory" },
+          ]}
+          noDataText={!zoneSelected ? "Vui lòng chọn vùng trước" : "Loading..."}
+          onRadioCheckedChange={(x) => onMachineTypeGroupChange(x.series)}
+        ></CollapseTable>
+
         {/* Machine list */}
-        <div className="collapse bg-base-100">
-          <input type="checkbox" defaultChecked={true} />
-          <div className="collapse-title text-xl font-medium">Cấu hình máy</div>
-          <div className="collapse-content">
-            {!machineGroupSelected && (
-              <div className="alert">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="stroke-info shrink-0 w-6 h-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
-                <span>Vui lòng chọn nhóm máy trước</span>
-              </div>
-            )}
-            {machineGroupSelected && (
-              <div className="overflow-x-auto">
-                <table className="table table-xs">
-                  <thead>
-                    <tr>
-                      <th></th>
-                      {machineListCol.map((x) => (
-                        <th key={v4()}>{x}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Row */}
-
-                    {machineTypeListGroups &&
-                      machineTypeListGroups[machineGroupSelected].map((x) => {
-                        return (
-                          <tr key={x.id as string}>
-                            <th>
-                              <input
-                                type="radio"
-                                name="radio-machine-list"
-                                className="checkbox checkbox-primary checkbox-xs"
-                              />
-                            </th>
-                            <td>{x.name?.split("-").at(0)?.toUpperCase()}</td>
-                            <td>{x.description}</td>
-                            <td>{x.guestCpus}</td>
-                            <td>
-                              {x.memoryMb
-                                ? (x.memoryMb / 1024).toFixed(1) + " GB"
-                                : "none"}
-                            </td>
-                            <td>12/16/2020</td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th></th>
-                      {machineListCol.map((x) => (
-                        <th key={v4()}>{x}</th>
-                      ))}
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-          </div>
+        <CollapseTable
+          title="Cấu hình máy"
+          cols={machineListCol}
+          radioName="radio-machine-list"
+          noDataText="Vui lòng chọn nhóm máy trước"
+          data={
+            machineTypeListGroups && machineGroupSelected
+              ? machineTypeListGroups[machineGroupSelected]
+              : undefined
+          }
+          rowkeys={[
+            {
+              key: "name",
+              render: (x) => x.split("-").at(0)?.toUpperCase() as string,
+            },
+            { key: "description" },
+            { key: "guestCpus" },
+            {
+              key: "memoryMb",
+              render(x) {
+                return (x / 1027).toFixed(1) + " GB";
+              },
+            },
+          ]}
+          onRadioCheckedChange={(x) => console.log(x)}
+        ></CollapseTable>
+        {/* Disk size */}
+        <div>
+          <label className="label">
+            <span className="label-text">
+              Kích thước ổ đĩa (Chưa bao gồm kích thước gốc cùa máy ảo )
+            </span>
+          </label>
+          <label className="input-group">
+            <input
+              type="number"
+              min={10}
+              max={254}
+              defaultValue={50}
+              className="input input-bordered"
+            />
+            <span>GB</span>
+          </label>
         </div>
-
         {/* Confirm */}
         <div className="space-x-4">
           <button className="btn btn-success">Khởi tạo</button>
-          <button className="btn btn-error">Huỷ</button>
+          <button
+            className="btn btn-error"
+            onClick={() => router.push("/compute")}
+          >
+            Huỷ
+          </button>
         </div>
       </div>
     </div>
