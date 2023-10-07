@@ -14,13 +14,17 @@ const credentials = {
     .join("\n"),
   client_email: process.env.GOOGLE_CREDENTIALS_CLIENT_EMAIL,
 };
-
+export interface CreateMachineConfig {
+  zone: string;
+  machineType: string;
+  sourceImage: string;
+  diskSizeGb: number;
+}
 const defaultConfig = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
   region: "asia-southeast1",
   zone: "asia-east1-b",
   machineType: "e2-small",
-  // sourceImage: "projects/debian-cloud/global/images/family/debian-10",
   sourceImage: "projects/f2app-154608/global/machineImages/code-sep-minoring",
   networkName: "global/networks/default",
   diskSizeGb: 30,
@@ -100,9 +104,10 @@ const gc = {
   getMachineImageList,
   createInstance: async function (
     instanceName: string,
-    zone: string = defaultConfig.zone,
-    region: string = defaultConfig.region,
-    diskSizeGb: number = defaultConfig.diskSizeGb
+    zone: string,
+    region: string,
+    sourceImage: string,
+    diskSizeGb: number
   ) {
     const instancesClient = new InstancesClient({
       credentials,
@@ -112,29 +117,18 @@ const gc = {
         instanceResource: {
           name: instanceName,
           canIpForward: true,
-          confidentialInstanceConfig: {
-            enableConfidentialCompute: false,
-          },
           deletionProtection: false,
           description: "",
           disks: [
             {
               autoDelete: true,
               boot: true,
-              deviceName: "instance-uet",
               initializeParams: {
-                diskSizeGb: "30",
-                diskType:
-                  "projects/f2app-154608/zones/us-central1-a/diskTypes/pd-balanced",
+                diskSizeGb: diskSizeGb,
                 labels: {},
               },
-              mode: "READ_WRITE",
-              type: "PERSISTENT",
             },
           ],
-          displayDevice: {
-            enableDisplay: false,
-          },
           guestAccelerators: [],
           instanceEncryptionKey: {},
           keyRevocationActionType: "NONE",
@@ -160,36 +154,7 @@ const gc = {
               stackType: "IPV4_ONLY",
             },
           ],
-          params: {
-            resourceManagerTags: {},
-          },
-          reservationAffinity: {
-            consumeReservationType: "ANY_RESERVATION",
-          },
-          scheduling: {
-            automaticRestart: true,
-            onHostMaintenance: "MIGRATE",
-            provisioningModel: "STANDARD",
-          },
-          serviceAccounts: [
-            {
-              email: "366344313992-compute@developer.gserviceaccount.com",
-              scopes: [
-                "https://www.googleapis.com/auth/devstorage.read_only",
-                "https://www.googleapis.com/auth/logging.write",
-                "https://www.googleapis.com/auth/monitoring.write",
-                "https://www.googleapis.com/auth/servicecontrol",
-                "https://www.googleapis.com/auth/service.management.readonly",
-                "https://www.googleapis.com/auth/trace.append",
-              ],
-            },
-          ],
-          shieldedInstanceConfig: {
-            enableIntegrityMonitoring: true,
-            enableSecureBoot: false,
-            enableVtpm: true,
-          },
-          sourceMachineImage: `projects/${defaultConfig.projectId}/global/machineImages/code-sep-minoring`,
+          sourceMachineImage: `projects/${defaultConfig.projectId}/global/machineImages/${sourceImage}`,
           tags: {
             items: ["http-server"],
           },
@@ -203,21 +168,20 @@ const gc = {
       `Creating the ${instanceName} instance in ${defaultConfig.zone}...`
     );
     const [response] = await instancesClient.insert(defaultInsertResource);
-    console.log("🚀 ~ file: gCompute.ts:130 ~ response:", response);
+    console.log("Create complete");
 
     let operation: any = response.latestResponse;
 
     const operationsClient = new ZoneOperationsClient({ credentials });
     // Wait for the create operation to complete.
     while (operation.status !== "DONE") {
-      console.log("check status");
+      console.log("Wating operation done");
 
       [operation] = await operationsClient.wait({
         operation: operation.name,
         project: defaultConfig.projectId,
         zone: operation.zone.split("/").pop(),
       });
-      console.log("🚀 ~ file: gCompute.ts:142 ~ operation:", operation);
     }
     return await this.getInstanceInfo(zone, instanceName);
   },
@@ -345,6 +309,125 @@ const gc = {
       throw err;
     } finally {
       zonesClient.close();
+    }
+  },
+  // Hàm khởi động một instance
+  startInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Starting instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.start({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} started.`);
+      return response;
+    } catch (err) {
+      console.error(`Error starting instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
+    }
+  },
+
+  // Hàm tiếp tục chạy một instance
+  resumeInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Resuming instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.resume({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} resumed.`);
+      return response;
+    } catch (err) {
+      console.error(`Error resuming instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
+    }
+  },
+
+  // Hàm dừng một instance
+  stopInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Stopping instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.stop({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} stopped.`);
+      return response;
+    } catch (err) {
+      console.error(`Error stopping instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
+    }
+  },
+
+  // Hàm tạm ngừng một instance
+  suspendInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Suspending instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.suspend({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} suspended.`);
+      return response;
+    } catch (err) {
+      console.error(`Error suspending instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
+    }
+  },
+
+  // Hàm khởi động lại một instance
+  resetInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Resetting instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.reset({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} reset.`);
+      return response;
+    } catch (err) {
+      console.error(`Error resetting instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
+    }
+  },
+
+  // Hàm xóa một instance
+  deleteInstance: async function (zone: string, instanceName: string) {
+    const instancesClient = new InstancesClient({ credentials });
+    try {
+      console.log(`Deleting instance ${instanceName} in zone ${zone}...`);
+      const [response] = await instancesClient.delete({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      console.log(`Instance ${instanceName} deleted.`);
+      return response;
+    } catch (err) {
+      console.error(`Error deleting instance ${instanceName}: ${err}`);
+      throw err;
+    } finally {
+      instancesClient.close();
     }
   },
 };

@@ -7,7 +7,7 @@ interface UserDocument extends Document {
   name: string;
   image: string;
   password: string;
-  role:"user" | "admin";
+  role: "user" | "admin" | "root";
 }
 
 interface Methods {
@@ -18,7 +18,7 @@ const userSchema = new Schema<UserDocument, {}, Methods>({
   name: { type: String, required: true, trim: true },
   image: { type: String },
   password: { type: String, required: true },
-  role: { type: String, enum: ["user", "admin"], default: "user" },
+  role: { type: String, enum: ["user", "admin", "root"], default: "user" },
 });
 
 userSchema.pre("save", async function (next) {

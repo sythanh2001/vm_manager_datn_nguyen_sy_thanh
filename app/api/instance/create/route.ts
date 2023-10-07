@@ -6,11 +6,29 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const instanceName = p.get("instanceName");
-  if (!instanceName) {
-    return NextResponse.json({ error: "bad request" });
+  const zone = p.get("zone");
+  const region = p.get("region");
+  const diskSize = Number(p.get("diskSize"));
+  const sourceImage = p.get("sourceImage");
+  const subDomain = p.get("subDomain");
+  if (
+    !instanceName ||
+    !zone ||
+    !region ||
+    !sourceImage ||
+    !diskSize ||
+    diskSize < 10
+  ) {
+    return NextResponse.json({ error: "Bad request" });
   }
 
-  const createInstanceRes = await gc.createInstance(instanceName);
+  const createInstanceRes = await gc.createInstance(
+    instanceName,
+    zone,
+    region,
+    sourceImage,
+    diskSize
+  );
   const instanceNATIP = createInstanceRes.networkInterfaces
     ?.at(0)
     ?.accessConfigs?.at(0)?.natIP;
@@ -18,13 +36,16 @@ export async function GET(req: NextRequest) {
   if (!instanceNATIP) {
     return NextResponse.json({ error: "Missing external ip!" });
   }
-  await cf.dnsRecords.add(process.env.CLOUDFLARE_ZONE_ID as string, {
-    type: "A",
-    name: instanceName,
-    content: instanceNATIP,
-    ttl: 1,
-    proxied: false,
-  });
+  if (subDomain) {
+    await cf.dnsRecords.add(process.env.CLOUDFLARE_ZONE_ID as string, {
+      type: "A",
+      name: subDomain,
+      content: instanceNATIP,
+      ttl: 1,
+      proxied: false,
+    });
+  }
+
   return NextResponse.json(createInstanceRes);
 }
 
@@ -38,7 +59,7 @@ export async function GET(req: NextRequest) {
 //   const createInstanceRes = await gc.createInstance(instanceName);
 //   const instanceNATIP = createInstanceRes.networkInterfaces
 //     ?.at(0)
-//     ?.accessConfigs?.at(0)?.natIP;
+//     ?.accessConfigs?.at(0)?.natIP;F
 //   if (!instanceNATIP) {
 //     return NextResponse.json({ error: "Missing external ip!" });
 //   }

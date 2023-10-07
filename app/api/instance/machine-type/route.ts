@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "bad request" });
   }
   const session = await getServerSession(authOptions);
-  if (!session) return;
+  if (!session?.user) return NextResponse.json({ error: "Bad request!" });
 
   return NextResponse.json(await gc.getMachineTypes(zone));
 }

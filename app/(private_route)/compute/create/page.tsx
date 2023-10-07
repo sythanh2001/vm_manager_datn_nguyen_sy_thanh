@@ -131,20 +131,27 @@ export default function Create(props: ICreateProps) {
 
   const [machineTypeGroupsDisplay, setMachineTypeGroupsDisplay] =
     React.useState<MachineTypeGroup[]>();
-
+  const [machineImageList, setMachineImageList] =
+    React.useState<google.cloud.compute.v1.IMachineImage[]>();
+  const [alert, setAlert] = React.useState<string>();
   //Input
+  const [instanceName, setInstanceName] = React.useState<string>();
+  const [subDomain, setSubDomain] = React.useState<string>();
   const [machineGroupSelected, setMachineGroupSelected] =
     React.useState<string>();
   const [machineTypeSelected, setMachineTypeSelected] = React.useState();
   const [regionSelected, setRegionSelected] = React.useState<string>();
   const [zoneSelected, setZoneSelected] = React.useState<string>();
+  const [sourceImage, setSourceImage] = React.useState<string>();
+  const [diskSize, setDiskSize] = React.useState(50);
+
+  //Handler
   const clearAllMachineData = () => {
     setMachineGroupSelected(undefined);
     setMachineTypeGroupsDisplay(undefined);
     setMachineTypeSelected(undefined);
     return true;
   };
-  //Handler
   const onZoneChange = (zoneName: string) => {
     clearAllMachineData();
 
@@ -191,27 +198,85 @@ export default function Create(props: ICreateProps) {
   };
 
   const onMachineTypeGroupChange = React.useCallback((groupName: string) => {
-    console.log(
-      "🚀 ~ file: page.tsx:194 ~ onMachineTypeGroupChange ~ groupName:",
-      groupName
-    );
     setMachineGroupSelected(groupName);
   }, []);
 
-  const createVM = () => {};
+  const createVM = () => {
+    axios
+      .get("/api/instance/create", {
+        params: {
+          instanceName,
+          zone: zoneSelected,
+          region: regionSelected,
+          machineType: machineTypeSelected,
+          diskSize,
+          sourceImage,
+          subDomain,
+        },
+      })
+      .catch((e) => {
+        console.log("🚀 ~ file: page.tsx:218 ~ createVM ~ e:", e);
+
+        setAlert(
+          "Khởi tạo không thành công vui lòng kiểm tra lại các trường thông tin hoặc lệ hệ với nhà phát triển để được hỗ trợ"
+        );
+        // @ts-ignore
+        document.getElementById("alert-modal").showModal();
+      });
+  };
   React.useEffect(() => {
     axios.get("/api/instance/regions").then(({ data }) => setRegionsList(data));
+    axios
+      .get<google.cloud.compute.v1.IMachineImage[]>(
+        "/api/instance/machine-image"
+      )
+      .then(({ data }) => {
+        setMachineImageList(data);
+        if (data.at(0)?.name) {
+          setSourceImage(data.at(0)?.name as string);
+        }
+      });
   }, []);
 
   return (
     <div className="content-center">
+      {/* Alert */}
+
+      <dialog id="alert-modal" className="modal">
+        <div className="modal-box">
+          <p className="py-4">{alert}</p>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
       <div className="form-control ml-52 mr-52 space-y-5">
         {/* Name */}
-        <div>
-          <label className="label">
-            <span className="label-text">Tên</span>
-          </label>
-          <input type="text" className="input input-bordered w-full" />
+        <div className="flex space-x-5">
+          <div className="w-full">
+            <label className="label">
+              <span className="label-text">Tên</span>
+            </label>
+            <input
+              type="text"
+              value={instanceName}
+              onChange={(e) => setInstanceName(e.target.value)}
+              className="input input-bordered w-full"
+            />
+          </div>
+          <div className="w-full">
+            <label className="label">
+              <span className="label-text">
+                Sub Domain (Để trống sẽ không tạo sub domain)
+              </span>
+            </label>
+            <input
+              type="text"
+              value={subDomain}
+              onChange={(e) => setSubDomain(e.target.value)}
+              className="input input-bordered w-full"
+            />
+          </div>
         </div>
 
         {/* Region & Zone */}
@@ -306,27 +371,56 @@ export default function Create(props: ICreateProps) {
           ]}
           onRadioCheckedChange={(x) => console.log(x)}
         ></CollapseTable>
-        {/* Disk size */}
-        <div>
-          <label className="label">
-            <span className="label-text">
-              Kích thước ổ đĩa (Chưa bao gồm kích thước gốc cùa máy ảo )
-            </span>
-          </label>
-          <label className="input-group">
-            <input
-              type="number"
-              min={10}
-              max={254}
-              defaultValue={50}
-              className="input input-bordered"
-            />
-            <span>GB</span>
-          </label>
+
+        <div className="flex space-x-5">
+          {/* Disk size */}
+          <div className="w-full">
+            <label className="label">
+              <span className="label-text">
+                Kích thước ổ đĩa (Chưa bao gồm kích thước gốc của máy ảo )
+              </span>
+            </label>
+            <label className="input-group">
+              <input
+                type="number"
+                min={10}
+                defaultValue={diskSize}
+                onChange={(e) => setDiskSize(Number(e.target.value))}
+                value={diskSize}
+                className="input input-bordered w-full"
+              />
+              <span>GB</span>
+            </label>
+          </div>
+
+          {/* Image */}
+          <div className="w-full">
+            <label className="label">
+              <span className="label-text">Image</span>
+            </label>
+            <select
+              value={sourceImage}
+              onChange={(e) => setSourceImage(e.target.value)}
+              className="select select-bordered w-full"
+            >
+              {!machineImageList && (
+                <option disabled selected>
+                  Loading...
+                </option>
+              )}
+              {machineImageList &&
+                machineImageList.map((x) => (
+                  <option key={x.id as string}>{x.name}</option>
+                ))}
+            </select>
+          </div>
         </div>
+
         {/* Confirm */}
         <div className="space-x-4">
-          <button className="btn btn-success">Khởi tạo</button>
+          <button className="btn btn-success" onClick={() => createVM()}>
+            Khởi tạo
+          </button>
           <button
             className="btn btn-error"
             onClick={() => router.push("/compute")}
