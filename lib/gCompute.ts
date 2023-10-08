@@ -107,7 +107,9 @@ const gc = {
     zone: string,
     region: string,
     sourceImage: string,
-    diskSizeGb: number
+    diskSizeGb: number,
+    author: string,
+    description: string
   ) {
     const instancesClient = new InstancesClient({
       credentials,
@@ -118,7 +120,7 @@ const gc = {
           name: instanceName,
           canIpForward: true,
           deletionProtection: false,
-          description: "",
+          description,
           disks: [
             {
               autoDelete: true,
@@ -139,7 +141,7 @@ const gc = {
           metadata: {
             items: [
               { key: "domain", value: `${instanceName}.nguyensythanh.id.vn` },
-              { key: "managers", value: "a@123.com;test@gmail.com" },
+              { key: "managers", value: author },
             ],
           },
           minCpuPlatform: "Automatic",

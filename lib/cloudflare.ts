@@ -1,15 +1,34 @@
 import Cloudflare from "cloudflare";
 
+export interface DNSRecord {
+  id: string;
+  zone_id: string;
+  zone_name: string;
+  name: string;
+  type: string;
+  content: string;
+  proxiable: boolean;
+  proxied: boolean;
+  ttl: number;
+  locked: boolean;
+  meta: Meta;
+  comment: null;
+  tags: any[];
+  created_on: Date;
+  modified_on: Date;
+}
+
+export interface Meta {
+  auto_added: boolean;
+  managed_by_apps: boolean;
+  managed_by_argo_tunnel: boolean;
+  source: string;
+}
+
+export const CLOUDFLARE_ZONE_ID = process.env.CLOUDFLARE_ZONE_ID as string;
 const cf = new Cloudflare({
   email: "thanhns2k1@gmail.com",
   key: process.env.CLOUDFLARE_TOKEN,
 });
 
-// await cf.dnsRecords.add("98cfa7d6a5330f22242b864353921198", {
-//     type: "A",
-//     name: "test",
-//     content: "8.8.4.4",
-//     ttl: 1,
-//     proxied: false,
-//   })
 export default cf;

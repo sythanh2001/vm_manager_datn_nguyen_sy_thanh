@@ -6,7 +6,7 @@ const util = {
       date = new Date(time);
     }
     if (String(date) == "Invalid Date") {
-      return "Chưa xác định";
+      return "Không xác định";
     }
     return date.toLocaleTimeString() + " " + date.toLocaleDateString();
   },

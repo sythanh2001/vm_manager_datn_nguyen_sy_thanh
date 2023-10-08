@@ -10,11 +10,11 @@ export interface IComputeProps {}
 
 function InstanceList() {
   const [colTitles] = React.useState([
-    "Status",
-    "Name",
-    "Domain",
-    "Zone",
-    "Creation time",
+    "Trạng thái",
+    "Tên",
+    "Tên miền",
+    "Khu vực",
+    "Ngày tạo",
   ]);
   const [instanceList, setInstanceList] = React.useState<InstanceInfo[]>();
 

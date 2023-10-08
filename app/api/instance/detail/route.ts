@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import gc from "@/lib/gCompute";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
+import cf, { CLOUDFLARE_ZONE_ID } from "@/lib/cloudflare";
 
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
@@ -17,5 +18,19 @@ export async function GET(req: NextRequest) {
   if (!gc.containsEmail(instance, session?.user?.email as string)) {
     return NextResponse.error();
   }
-  return NextResponse.json(instance);
+
+  const domainTemp = instance.metadata?.items?.find(
+    (x) => x.key == "domain"
+  )?.value;
+  let cloudflare = undefined;
+  if (domainTemp) {
+    cloudflare = (await cf.dnsRecords.browse(CLOUDFLARE_ZONE_ID)).result?.find(
+      (x: any) => x.name == domainTemp
+    );
+    // cloudflare = await cf.dnsRecords.browse(CLOUDFLARE_ZONE_ID, {
+    //   name: domainTemp?.split(".").at(0),
+    // });
+  }
+
+  return NextResponse.json({ instance, cloudflare });
 }

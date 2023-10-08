@@ -1,9 +1,15 @@
 import cf from "@/lib/cloudflare";
 import gc from "@/lib/gCompute";
+import { getServerSession } from "next-auth";
 
 import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "../../auth/[...nextauth]/route";
 
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.error();
+  }
   const p = req.nextUrl.searchParams;
   const instanceName = p.get("instanceName");
   const zone = p.get("zone");
@@ -11,6 +17,7 @@ export async function GET(req: NextRequest) {
   const diskSize = Number(p.get("diskSize"));
   const sourceImage = p.get("sourceImage");
   const subDomain = p.get("subDomain");
+  const description = p.get("description") as string;
   if (
     !instanceName ||
     !zone ||
@@ -27,7 +34,9 @@ export async function GET(req: NextRequest) {
     zone,
     region,
     sourceImage,
-    diskSize
+    diskSize,
+    session.user?.email as string,
+    description
   );
   const instanceNATIP = createInstanceRes.networkInterfaces
     ?.at(0)
