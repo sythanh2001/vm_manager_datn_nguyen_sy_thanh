@@ -53,7 +53,7 @@ function CollapseInfoTable({
 function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
   return (
     <iframe
-      src={`http://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
+      src={`https://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
       className="w-full"
       frameBorder="0"
       scrolling="no"
