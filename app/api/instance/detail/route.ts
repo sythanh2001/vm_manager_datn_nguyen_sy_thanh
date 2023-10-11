@@ -23,14 +23,11 @@ export async function GET(req: NextRequest) {
     (x) => x.key == "domain"
   )?.value;
   let cloudflare = undefined;
-  if (domainTemp) {
-    cloudflare = (await cf.dnsRecords.browse(CLOUDFLARE_ZONE_ID)).result?.find(
-      (x: any) => x.name == domainTemp
-    );
-    // cloudflare = await cf.dnsRecords.browse(CLOUDFLARE_ZONE_ID, {
-    //   name: domainTemp?.split(".").at(0),
-    // });
-  }
+  // if (domainTemp) {
+  //   cloudflare = (await cf.dnsRecords.browse(CLOUDFLARE_ZONE_ID)).result?.find(
+  //     (x: any) => x.name == domainTemp
+  //   );
+  // }
 
   return NextResponse.json({ instance, cloudflare });
 }

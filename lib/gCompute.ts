@@ -5,6 +5,7 @@ import {
   RegionsClient,
   ZoneOperationsClient,
   ZonesClient,
+  DisksClient,
   protos,
 } from "@google-cloud/compute";
 
@@ -21,7 +22,7 @@ export interface CreateMachineConfig {
   diskSizeGb: number;
 }
 const defaultConfig = {
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID as string,
   region: "asia-southeast1",
   zone: "asia-east1-b",
   machineType: "e2-small",
@@ -97,11 +98,109 @@ const getMachineTypes = async function (zone: string) {
   }
 };
 
+const resizeInstanceDisk = async function (
+  zone: string,
+  diskName: string,
+  newDiskSizeGb: number
+) {
+  console.log("🚀 ~ file: gCompute.ts:106 ~ newDiskSizeGb:", newDiskSizeGb);
+  const disksClient = new DisksClient({
+    credentials,
+  });
+
+  try {
+    // Get information about the existing disk
+    const [disk] = await disksClient.get({
+      project: defaultConfig.projectId,
+      zone: zone,
+      disk: diskName,
+    });
+    console.log("🚀 ~ file: gCompute.ts:118 ~ disk:", disk);
+    if (!disk) {
+      throw new Error(`Disk ${diskName} not found.`);
+    }
+
+    // Create a request to resize the disk
+    const resizeRequest = {
+      project: defaultConfig.projectId,
+      zone: zone,
+      disk: diskName,
+      sizeGb: newDiskSizeGb,
+    };
+    console.log("🚀 ~ file: gCompute.ts:130 ~ resizeRequest:", resizeRequest);
+
+    // Resize the disk`
+    console.log(`Resizing disk ${diskName} to ${newDiskSizeGb} GB...`);
+    return await disksClient.resize(resizeRequest);
+  } catch (err) {
+    console.error(`Error increasing disk size for ${diskName}: ${err}`);
+    throw err;
+  } finally {
+    disksClient.close();
+  }
+};
+const changeInstanceMachineType = async function (
+  zone: string,
+  instanceName: string,
+  newMachineType: string
+) {
+  const instancesClient = new InstancesClient({
+    credentials,
+  });
+
+  try {
+    // Lấy thông tin instance hiện tại
+    const [instance] = await instancesClient.get({
+      project: defaultConfig.projectId,
+      zone: zone,
+      instance: instanceName,
+    });
+
+    if (!instance) {
+      throw new Error(`Instance ${instanceName} not found.`);
+    }
+
+    // Tạo một request để cập nhật loại máy ảo của instance
+    const updateRequest: protos.google.cloud.compute.v1.SetMachineTypeInstanceRequest =
+      {
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+        instancesSetMachineTypeRequestResource: {
+          machineType: `zones/${zone}/machineTypes/${newMachineType}`,
+        },
+        toJSON: function (): { [k: string]: any } {
+          throw new Error("Function not implemented.");
+        },
+      };
+
+    // Gửi yêu cầu cập nhật loại máy ảo của instance
+    console.log(
+      `Changing machine type of instance ${instanceName} to ${newMachineType}...`
+    );
+    const [response] = await instancesClient.setMachineType(updateRequest);
+    console.log(
+      `Machine type of instance ${instanceName} changed to ${newMachineType}.`
+    );
+
+    return response;
+  } catch (err) {
+    console.error(
+      `Error changing machine type for instance ${instanceName}: ${err}`
+    );
+    throw err;
+  } finally {
+    instancesClient.close();
+  }
+};
+
 const gc = {
   getRegions,
   getZones,
   getMachineTypes,
   getMachineImageList,
+  resizeInstanceDisk,
+  changeInstanceMachineType,
   createInstance: async function (
     instanceName: string,
     zone: string,
@@ -195,7 +294,7 @@ const gc = {
       project: defaultConfig.projectId,
     });
 
-    const arr: any[] = [];
+    const arr: protos.google.cloud.compute.v1.IInstance[] = [];
     const promises = [];
 
     for await (const [zone, instancesObject] of aggListRequest) {
@@ -203,10 +302,11 @@ const gc = {
       if (instances && instances.length > 0) {
         promises.push(
           Promise.all(
-            instances.map(async (i) => {
-              const zoneName = zone.split("/").pop();
-              arr.push({ ...i, zoneName });
-            })
+            instances.map(
+              async (i: protos.google.cloud.compute.v1.IInstance) => {
+                arr.push(i);
+              }
+            )
           )
         );
       }
@@ -274,11 +374,11 @@ const gc = {
     return filteredInstances;
   },
   getInstanceListByMetadataExist: async function (...metadataKeys: any[]) {
-    const allInstances = await this.listAllInstances();
+    const allInstances = (await this.listAllInstances()) as any[];
     const filteredInstances = allInstances.filter((instance) => {
-      if (instance.metadata && instance.metadata.items) {
+      if (instance && instance.metadata && instance.metadata.items) {
         const hasMatchingMetadata = metadataKeys.some((key) =>
-          instance.metadata.items.some((item: any) => item.key === key)
+          instance.metadata.items?.some((item: any) => item.key === key)
         );
         return hasMatchingMetadata;
       }
@@ -313,7 +413,7 @@ const gc = {
       zonesClient.close();
     }
   },
-  // Hàm khởi động một instance
+
   startInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -333,7 +433,6 @@ const gc = {
     }
   },
 
-  // Hàm tiếp tục chạy một instance
   resumeInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -353,7 +452,6 @@ const gc = {
     }
   },
 
-  // Hàm dừng một instance
   stopInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -373,7 +471,6 @@ const gc = {
     }
   },
 
-  // Hàm tạm ngừng một instance
   suspendInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -393,7 +490,6 @@ const gc = {
     }
   },
 
-  // Hàm khởi động lại một instance
   resetInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -413,7 +509,6 @@ const gc = {
     }
   },
 
-  // Hàm xóa một instance
   deleteInstance: async function (zone: string, instanceName: string) {
     const instancesClient = new InstancesClient({ credentials });
     try {
@@ -433,4 +528,5 @@ const gc = {
     }
   },
 };
+
 export default gc;

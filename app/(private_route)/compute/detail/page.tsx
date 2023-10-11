@@ -3,10 +3,8 @@ import * as React from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import { InstanceInfo } from "@/lib/gComputeInterface";
 import { v4 } from "uuid";
 import { google } from "@google-cloud/compute/build/protos/protos";
-import { log } from "console";
 import util from "@/lib/util";
 import Link from "next/link";
 import { DNSRecord } from "@/lib/cloudflare";
@@ -50,6 +48,16 @@ function CollapseInfoTable({
         </div>
       </div>
     </div>
+  );
+}
+function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
+  return (
+    <iframe
+      src={`http://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
+      className="w-full"
+      frameBorder="0"
+      scrolling="no"
+    ></iframe>
   );
 }
 export default function Page(props: IPageProps) {
@@ -145,18 +153,36 @@ export default function Page(props: IPageProps) {
           ]}
         ></CollapseInfoTable>
         {/* Resource manager */}
-        <CollapseInfoTable
-          title="Quản lý tài nguyên"
-          data={[
-            { label: "Kiểu máy", value: i.machineType?.split("/").pop() },
-            { label: "CPU platform", value: i.cpuPlatform },
-            { label: "Minimum CPU platform", value: i.minCpuPlatform },
-            {
-              label: "Hiển thị",
-              value: i.displayDevice?.enableDisplay ? "Hỗ trợ" : "Không hỗ trợ",
-            },
-          ]}
-        ></CollapseInfoTable>
+        {externalIP && (
+          <div className="collapse collapse-arrow bg-base-200">
+            <input type="checkbox" defaultChecked={true} />
+            <div className="collapse-title text-xl font-medium">
+              Quản lý tài nguyên
+            </div>
+            <div className="collapse-content">
+              <div className="flex">
+                <GrafanaIframe ip={externalIP} id="14"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="75"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="23"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="15"></GrafanaIframe>
+              </div>
+              <div className="flex">
+                <GrafanaIframe ip={externalIP} id="20"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="16"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="154"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="19"></GrafanaIframe>
+              </div>
+              <div className="flex">
+                <GrafanaIframe ip={externalIP} id="77"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="78"></GrafanaIframe>
+              </div>
+              <div className="flex">
+                <GrafanaIframe ip={externalIP} id="74"></GrafanaIframe>
+                <GrafanaIframe ip={externalIP} id="152"></GrafanaIframe>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Machine config */}
         <CollapseInfoTable
           title="Cấu hình máy"

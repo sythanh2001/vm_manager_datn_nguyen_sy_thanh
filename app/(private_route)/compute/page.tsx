@@ -1,10 +1,21 @@
 "use client";
 import * as React from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { v4 } from "uuid";
 import axios from "axios";
-import { InstanceInfo } from "@/lib/gComputeInterface";
+
+import {
+  Autorenew,
+  CheckCircleOutline,
+  MoreVert,
+  PauseCircleOutline,
+  Refresh,
+  StopCircle,
+} from "@mui/icons-material/";
+
 import Link from "next/link";
+import { protos } from "@google-cloud/compute";
+import util from "@/lib/util";
 
 export interface IComputeProps {}
 
@@ -16,31 +27,21 @@ function InstanceList() {
     "Khu vực",
     "Ngày tạo",
   ]);
-  const [instanceList, setInstanceList] = React.useState<InstanceInfo[]>();
+  const [instanceList, setInstanceList] =
+    React.useState<protos.google.cloud.compute.v1.IInstance[]>();
 
-  const InstanceActionHandler = (
-    action: string,
-    instanceName: string,
-    zone: string
-  ) => {
-    axios
-      .get("/api/instance/control", {
-        params: { action, instanceName, zone },
-      })
-      .then(({ data }) => {
-        console.log("🚀 ~ file: page.tsx:38 ~ InstanceList ~ data:", data);
-      });
-  };
   const [refreshLoading, setRefreshLoading] = React.useState<boolean>(false);
   const updateInstanceList = () => {
     axios
       .get("/api/instance/list")
-      .then(({ data }: { data: InstanceInfo[] }) => {
-        console.log("🚀 ~ file: page.tsx:23 ~ .then ~ data:", data);
+      .then(
+        ({ data }: { data: protos.google.cloud.compute.v1.IInstance[] }) => {
+          console.log("🚀 ~ file: page.tsx:23 ~ .then ~ data:", data);
 
-        setInstanceList(data);
-        setRefreshLoading(false);
-      });
+          setInstanceList(data);
+          setRefreshLoading(false);
+        }
+      );
   };
 
   React.useEffect(() => {
@@ -63,7 +64,11 @@ function InstanceList() {
           }}
         >
           Làm mới
-          {refreshLoading && <span className="loading loading-spinner"></span>}
+          {refreshLoading ? (
+            <span className="loading loading-spinner"></span>
+          ) : (
+            <Refresh></Refresh>
+          )}
         </button>
       </div>
       <table className="table">
@@ -88,17 +93,35 @@ function InstanceList() {
               const domain = i.metadata?.items?.find(
                 (i) => i.key == "domain"
               )?.value;
+              const zoneName = i.zone?.split("/").pop();
+              let StatusIcon = CheckCircleOutline;
+              switch (i.status) {
+                case "TERMINATED":
+                  StatusIcon = StopCircle;
+                  break;
+                case "SUSPENDING":
+                  StatusIcon = PauseCircleOutline;
+                  break;
+                case "STAGING":
+                  StatusIcon = Autorenew;
+                  break;
+              }
+
               return (
-                <tr className="hover" key={i.id}>
+                <tr className="hover" key={i.id as string}>
                   <th>
                     <label>
                       <input type="checkbox" className="checkbox" />
                     </label>
                   </th>
-                  <td>{i.status}</td>
+                  <td>
+                    <StatusIcon></StatusIcon>
+                    {i.status}
+                  </td>
                   <td>
                     <Link
-                      href={`/compute/detail?zone=${i.zoneName}&instanceName=${i.name}`}
+                      href={`/compute/detail?zone=${zoneName}&instanceName=${i.name}`}
+                      className="link link-info"
                     >
                       {i.name}
                     </Link>
@@ -107,23 +130,23 @@ function InstanceList() {
                     {domain && (
                       <Link
                         className="link link-info "
-                        href={"http://" + domain}
+                        href={"//" + domain}
                         target="_blank"
                       >
                         {domain}
                       </Link>
                     )}
                   </td>
-                  <td>{i.zoneName}</td>
+                  <td>{zoneName}</td>
                   <td>
                     {createDate.toLocaleTimeString() +
                       " " +
                       createDate.toLocaleDateString()}
                   </td>
                   <th>
-                    <div className="dropdown dropdown-hover dropdown-bottom dropdown-end rounded-full">
-                      <label tabIndex={0} className="btn m-1">
-                        ...
+                    <div className="dropdown dropdown-hover dropdown-bottom dropdown-end ">
+                      <label tabIndex={0} className="">
+                        <MoreVert></MoreVert>
                       </label>
                       <ul
                         tabIndex={0}
@@ -133,17 +156,17 @@ function InstanceList() {
                           <div
                             onClick={(e) => {
                               if (i.status == "SUSPENDED") {
-                                InstanceActionHandler(
+                                util.InstanceActionHandler(
                                   "resumeInstance",
                                   i.name as string,
-                                  i.zoneName as string
+                                  zoneName as string
                                 );
                                 return;
                               }
-                              InstanceActionHandler(
+                              util.InstanceActionHandler(
                                 "startInstance",
                                 i.name as string,
-                                i.zoneName as string
+                                zoneName as string
                               );
                             }}
                           >
@@ -153,10 +176,10 @@ function InstanceList() {
                         <li>
                           <div
                             onClick={(e) =>
-                              InstanceActionHandler(
+                              util.InstanceActionHandler(
                                 "stopInstance",
                                 i.name as string,
-                                i.zoneName as string
+                                zoneName as string
                               )
                             }
                           >
@@ -166,10 +189,10 @@ function InstanceList() {
                         <li>
                           <div
                             onClick={(e) =>
-                              InstanceActionHandler(
+                              util.InstanceActionHandler(
                                 "suspendInstance",
                                 i.name as string,
-                                i.zoneName as string
+                                zoneName as string
                               )
                             }
                           >
@@ -179,10 +202,10 @@ function InstanceList() {
                         <li>
                           <div
                             onClick={(e) =>
-                              InstanceActionHandler(
+                              util.InstanceActionHandler(
                                 "resetInstance",
                                 i.name as string,
-                                i.zoneName as string
+                                zoneName as string
                               )
                             }
                           >
@@ -192,10 +215,10 @@ function InstanceList() {
                         <li>
                           <div
                             onClick={(e) =>
-                              InstanceActionHandler(
+                              util.InstanceActionHandler(
                                 "deleteInstance",
                                 i.name as string,
-                                i.zoneName as string
+                                zoneName as string
                               )
                             }
                           >
@@ -204,7 +227,7 @@ function InstanceList() {
                         </li>
                         <li>
                           <Link
-                            href={`/compute/detail?zone=${i.zoneName}&instanceName=${i.name}`}
+                            href={`/compute/detail?zone=${zoneName}&instanceName=${i.name}`}
                           >
                             Chi tiết
                           </Link>
