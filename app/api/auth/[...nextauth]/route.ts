@@ -75,7 +75,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token, user }) {
       let customSessionUserData = {
         ...session,
-        user: { ...session.user, role: token.role },
+        user: { ...session.user, role: token.role, id: token.sub },
       };
 
       return customSessionUserData;
