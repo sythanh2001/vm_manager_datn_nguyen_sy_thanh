@@ -8,6 +8,7 @@ import { google } from "@google-cloud/compute/build/protos/protos";
 import util from "@/lib/util";
 import Link from "next/link";
 import { DNSRecord } from "@/lib/cloudflare";
+import { DefaultLoading } from "@/components/Loading";
 
 export interface IPageProps {}
 
@@ -110,9 +111,9 @@ export default function Page(props: IPageProps) {
       });
   }, [sp]);
 
-  if (!i) return <div>Loading...</div>;
+  if (!i) return <DefaultLoading></DefaultLoading>;
   return (
-    <div className="ml-52 mr-52">
+    <div className="">
       <div className="space-y-5">
         {/* Basic info */}
         <CollapseInfoTable

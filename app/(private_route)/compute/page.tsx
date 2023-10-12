@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { protos } from "@google-cloud/compute";
 import util from "@/lib/util";
+import { DefaultLoading } from "@/components/Loading";
 
 export interface IComputeProps {}
 
@@ -53,7 +54,7 @@ function InstanceList() {
     <div>
       {/* Controller */}
       <div className="flex space-x-9">
-        <div className="text-lg font-bold">Dashboard</div>
+        <div className="text-lg font-bold">Bảng Điều Khiển</div>
         <Link href={"/compute/create"} className="btn btn-sm btn-primary">
           Tạo máy ảo
         </Link>
@@ -241,21 +242,15 @@ function InstanceList() {
               );
             })}
         </tbody>
-        {/* foot */}
-        <tfoot>
-          <tr>
-            <th></th>
-            {colTitles && colTitles.map((x) => <th key={v4()}>{x}</th>)}
-          </tr>
-        </tfoot>
       </table>
+      {!instanceList && <DefaultLoading></DefaultLoading>}
     </div>
   );
 }
 
 export default function Compute(props: IComputeProps) {
   return (
-    <div className="ml-32 mr-32">
+    <div className="mr-32">
       <InstanceList></InstanceList>
     </div>
   );

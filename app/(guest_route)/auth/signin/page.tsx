@@ -18,7 +18,7 @@ export default function LoginPage() {
     });
 
     if (result && !result.error) {
-      router.push("/dashboard");
+      router.push("/compute");
     }
   };
 

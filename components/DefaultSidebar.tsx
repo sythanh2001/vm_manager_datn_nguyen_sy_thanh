@@ -22,7 +22,7 @@ function UserInfo() {
     roleColor = "secondary";
   }
   return (
-    <div className="flex items-center absolute bottom-5 w-full">
+    <div className="flex items-center absolute bottom-5 w-full bg-base-200">
       <img
         src={user?.image || "/defaultAvatar.png"}
         alt="Avatar"
@@ -55,7 +55,7 @@ function UserInfo() {
 }
 export function DefaultSidebar({ children }: DefaultSidebarProps) {
   return (
-    <div className="drawer lg:drawer-open">
+    <div className="drawer drawer-open">
       <input id="my-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content">
         {/* Page content here */}
@@ -67,14 +67,14 @@ export function DefaultSidebar({ children }: DefaultSidebarProps) {
           aria-label="close sidebar"
           className="drawer-overlay"
         ></label>
-        <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
+        <ul className="menu w-80 min-h-full bg-base-200 text-base-content">
           {/* Sidebar content here */}
           <Link href={"/"} className="btn btn-ghost normal-case text-xl">
             DATN
           </Link>
           <li>
             <Link href={"/compute"}>
-              <Dashboard></Dashboard> Dashboard
+              <Dashboard></Dashboard> Bảng Điều Khiển
             </Link>
           </li>
           <li>
