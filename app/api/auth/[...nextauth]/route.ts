@@ -11,13 +11,30 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 4 * 60 * 60 },
   adapter: MongoDBAdapter(clientPromise),
   providers: [
-    GitHub({
-      clientId: process.env.GITHUB_ID as string,
-      clientSecret: process.env.GITHUB_SECRET as string,
-    }),
+    // GitHub({
+    //   clientId: process.env.GITHUB_ID as string,
+    //   clientSecret: process.env.GITHUB_SECRET as string,
+    //   profile(p) {
+    //     console.log("🚀 ~ file: route.ts:18 ~ profile ~ p:", p);
+    //     return { id: p.sub };
+    //   },
+    // }),
     Google({
       clientId: process.env.GOOGLE_ID as string,
       clientSecret: process.env.GOOGLE_SECRET as string,
+      httpOptions: {
+        timeout: 50000,
+      },
+      profile(p) {
+        console.log("🚀 ~ file: route.ts:26 ~ profile ~ p:", p);
+
+        return {
+          id: p.sub,
+          name: p.name,
+          email: p.email,
+          role: p.role ?? "user",
+        };
+      },
     }),
     Credentials({
       type: "credentials",
@@ -43,18 +60,22 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           image: user.image,
           id: user._id,
+          role: user.role,
         };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user, session, trigger }) {
+      if (user) {
+        token.role = (user as any).role;
+      }
       return token;
     },
     async session({ session, token, user }) {
       let customSessionUserData = {
         ...session,
-        user: { ...session.user, id: token.sub },
+        user: { ...session.user, role: token.role },
       };
 
       return customSessionUserData;
