@@ -1,4 +1,5 @@
 import axios from "axios";
+import { NextResponse } from "next/server";
 
 const util = {
   timeFormat: (time: Date | any) => {
@@ -26,6 +27,18 @@ const util = {
     return await axios.get("/api/instance/control", {
       params: { action, instanceName, zone },
     });
+  },
+  ResponseErrorAuth: () => {
+    return NextResponse.json({
+      errorID: 0,
+      error: "Auth error!",
+    });
+  },
+  ResponseErrorBadRequest: () => {
+    return NextResponse.json({ errorID: 1, error: "Bad request!" });
+  },
+  ResponseErrorAdminRole: () => {
+    return NextResponse.json({ errorID: 2, error: "Admin permission!" });
   },
 };
 export default util;
