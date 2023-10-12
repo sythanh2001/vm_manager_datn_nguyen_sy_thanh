@@ -77,9 +77,9 @@ export function DefaultSidebar({ children }: DefaultSidebarProps) {
               <Dashboard></Dashboard> Bảng Điều Khiển
             </Link>
           </li>
-          {/* <li>
+          <li>
             <a>Sidebar Item 2</a>
-          </li> */}
+          </li>
           <UserInfo></UserInfo>
         </ul>
       </div>
