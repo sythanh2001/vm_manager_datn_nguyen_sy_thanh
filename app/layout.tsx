@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { DefaultHeader } from "@/components/DefaultHeader";
 import { DefaultFooter } from "@/components/DefaultFooter";
 import { Providers } from "@/components/Redux/Provider";
+import { DefaultSidebar } from "@/components/DefaultSidebar";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -20,11 +21,12 @@ export default function RootLayout({
       <html lang="en">
         <body>
           <Providers>
-            <DefaultHeader></DefaultHeader>
-            <div className="">
-              {children}
-              <DefaultFooter></DefaultFooter>
-            </div>
+            <DefaultSidebar>
+              <div className="">
+                {children}
+                {/* <DefaultFooter></DefaultFooter> */}
+              </div>
+            </DefaultSidebar>
           </Providers>
         </body>
       </html>

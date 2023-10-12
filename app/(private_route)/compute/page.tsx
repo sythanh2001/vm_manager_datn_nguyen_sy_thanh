@@ -7,6 +7,7 @@ import axios from "axios";
 import {
   Autorenew,
   CheckCircleOutline,
+  Dashboard,
   MoreVert,
   PauseCircleOutline,
   Refresh,
@@ -20,6 +21,9 @@ import util from "@/lib/util";
 export interface IComputeProps {}
 
 function InstanceList() {
+  const { data, status } = useSession();
+
+  const isAuth = status == "authenticated";
   const [colTitles] = React.useState([
     "Trạng thái",
     "Tên",
@@ -250,10 +254,6 @@ function InstanceList() {
 }
 
 export default function Compute(props: IComputeProps) {
-  const { data, status } = useSession();
-
-  const isAuth = status == "authenticated";
-
   return (
     <div className="ml-32 mr-32">
       <InstanceList></InstanceList>

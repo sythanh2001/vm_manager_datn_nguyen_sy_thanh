@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 export interface UserDocument extends Document {
   email: string;
   name: string;
-  image: string;
+  image?: string;
   password: string;
   role: "user" | "admin" | "root";
 }
