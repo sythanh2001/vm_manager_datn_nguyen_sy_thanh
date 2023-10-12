@@ -37,8 +37,14 @@ const util = {
   ResponseErrorBadRequest: () => {
     return NextResponse.json({ errorID: 1, error: "Bad request!" });
   },
+  ResponseErrorNotManager: () => {
+    return NextResponse.json({
+      errorID: 2,
+      error: "You are not the admin or manager of this Instance!",
+    });
+  },
   ResponseErrorAdminRole: () => {
-    return NextResponse.json({ errorID: 2, error: "Admin permission!" });
+    return NextResponse.json({ errorID: 3, error: "Admin permission!" });
   },
 };
 export default util;

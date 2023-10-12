@@ -208,11 +208,23 @@ const gc = {
     sourceImage: string,
     diskSizeGb: number,
     author: string,
+    subDomain: string,
     description: string
   ) {
     const instancesClient = new InstancesClient({
       credentials,
     });
+
+    //METADATA
+    const metadataItems: protos.google.cloud.compute.v1.IItems[] = [];
+    metadataItems.push({ key: "managers", value: author });
+    if (subDomain) {
+      metadataItems.push({
+        key: "domain",
+        value: `${subDomain}.${process.env.BASE_DOMAIN}`,
+      });
+    }
+
     const defaultInsertResource: protos.google.cloud.compute.v1.IInsertInstanceRequest =
       {
         instanceResource: {
@@ -238,10 +250,7 @@ const gc = {
           },
           machineType: `zones/${zone}/machineTypes/${defaultConfig.machineType}`,
           metadata: {
-            items: [
-              { key: "domain", value: `${instanceName}.nguyensythanh.id.vn` },
-              { key: "managers", value: author },
-            ],
+            items: metadataItems,
           },
           minCpuPlatform: "Automatic",
           networkInterfaces: [

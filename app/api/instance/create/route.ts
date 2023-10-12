@@ -1,4 +1,4 @@
-import cf from "@/lib/cloudflare";
+import cf, { createSubDomainSafe } from "@/lib/cloudflare";
 import gc from "@/lib/gCompute";
 import { getServerSession } from "next-auth";
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return util.ResponseErrorAuth();
   }
   const user = session.user as UserDocument;
-  console.log("🚀 ~ file: route.ts:16 ~ GET ~ user:", user)
+  console.log("🚀 ~ file: route.ts:16 ~ GET ~ user:", user);
   if (user.role != "admin") return util.ResponseErrorAdminRole();
 
   const p = req.nextUrl.searchParams;
@@ -43,25 +43,19 @@ export async function GET(req: NextRequest) {
     sourceImage,
     diskSize,
     session.user?.email as string,
+    subDomain as string,
     description
   );
   const instanceNATIP = createInstanceRes.networkInterfaces
+
     ?.at(0)
     ?.accessConfigs?.at(0)?.natIP;
-
+  console.log("🚀 ~ file: route.ts:50 ~ GET ~ instanceNATIP:", instanceNATIP);
   if (!instanceNATIP) {
     return NextResponse.json({ error: "Missing external ip!" });
   }
   if (subDomain) {
-    console.log(
-      await cf.dnsRecords.add(process.env.CLOUDFLARE_ZONE_ID as string, {
-        type: "A",
-        name: subDomain,
-        content: instanceNATIP,
-        ttl: 1,
-        proxied: false,
-      })
-    );
+    createSubDomainSafe(instanceNATIP, subDomain);
   }
 
   return NextResponse.json(createInstanceRes);
