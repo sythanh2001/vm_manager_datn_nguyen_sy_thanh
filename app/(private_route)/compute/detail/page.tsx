@@ -94,8 +94,10 @@ export default function Page(props: IPageProps) {
         )}`
       )
       .then(({ data }) => {
-        console.log("🚀 ~ file: page.tsx:72 ~ .then ~ data:", data);
-
+        // console.log("🚀 ~ file: page.tsx:72 ~ .then ~ data:", data);
+        if(!data.name){
+          console.log("request fail")
+        }
         setInstance(data.instance);
 
         const domainTemp = data.instance.metadata?.items?.find(

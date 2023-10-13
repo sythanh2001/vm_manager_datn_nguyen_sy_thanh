@@ -41,6 +41,8 @@ function InstanceList() {
       .get("/api/instance/list")
       .then(
         ({ data }: { data: protos.google.cloud.compute.v1.IInstance[] }) => {
+          console.log(data);
+          
           setInstanceList(data);
           setRefreshLoading(false);
         }
