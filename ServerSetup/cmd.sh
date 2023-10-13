@@ -16,3 +16,5 @@ mkdir -p /etc/grafana/ssl
 sudo chown -R 472:472 /etc/grafana/ssl
 cp grafana.pem /etc/grafana/ssl/
 cp grafana-key.pem /etc/grafana/ssl/
+
+docker-compose up -d

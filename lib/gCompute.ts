@@ -285,13 +285,18 @@ const gc = {
     const operationsClient = new ZoneOperationsClient({ credentials });
     // Wait for the create operation to complete.
     while (operation.status !== "DONE") {
-      console.log("Wating operation done");
+      console.log("🚀 ~ file: gCompute.ts:288 ~ operation:", operation)
+      try {
+        console.log("Wating operation done");
 
-      [operation] = await operationsClient.wait({
-        operation: operation.name,
-        project: defaultConfig.projectId,
-        zone: operation.zone.split("/").pop(),
-      });
+        [operation] = await operationsClient.wait({
+          operation: operation.name,
+          project: defaultConfig.projectId,
+          zone: operation.zone.split("/").pop(),
+        });
+      } catch (error) {
+        console.log("🚀 ~ file: gCompute.ts:297 ~ error:", error);
+      }
     }
     return await this.getInstanceInfo(zone, instanceName);
   },

@@ -55,7 +55,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing external ip!" });
   }
   if (subDomain) {
-    createSubDomainSafe(instanceNATIP, subDomain);
+    console.log(
+      "🚀 ~ file: route.ts:63 ~ GET ~ createSubDomainSafe:",
+      await createSubDomainSafe(instanceNATIP, subDomain)
+    );
   }
 
   return NextResponse.json(createInstanceRes);

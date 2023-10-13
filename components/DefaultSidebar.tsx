@@ -45,9 +45,9 @@ function UserInfo() {
               <Logout></Logout>Đăng xuất
             </a>
           </li>
-          <li>
+          {/* <li>
             <a>Item 2</a>
-          </li>
+          </li> */}
         </ul>
       </div>
     </div>
@@ -77,9 +77,9 @@ export function DefaultSidebar({ children }: DefaultSidebarProps) {
               <Dashboard></Dashboard> Bảng Điều Khiển
             </Link>
           </li>
-          <li>
+          {/* <li>
             <a>Sidebar Item 2</a>
-          </li>
+          </li> */}
           <UserInfo></UserInfo>
         </ul>
       </div>
