@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const zone = p.get("zone");
   const instanceName = p.get("instanceName");
-
   const diskName = p.get("diskName");
   const newDiskSizeGb = Number(p.get("newDiskSizeGb"));
 

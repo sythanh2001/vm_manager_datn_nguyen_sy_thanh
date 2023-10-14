@@ -33,7 +33,7 @@ function RowDiskInfo({
     axios
       .get("/api/instance/edit/resize-disk", {
         params: {
-          instanceName: instance.zone?.split("/").pop(),
+          instanceName: instance.name,
           zone,
           diskName,
           newDiskSizeGb,
@@ -49,23 +49,25 @@ function RowDiskInfo({
       <td>{disk.boot ? "Có" : "Không"}</td>
       <td>{disk.interface}</td>
       <th>
-        <div className="tooltip z-50" data-tip="Tối đa 65,536 GB">
-          <input
-            type="number"
-            defaultValue={Number(disk.diskSizeGb)}
-            min={Number(disk.diskSizeGb)}
-            onChange={(e) => {
-              setNewDiskSizeGb(Number(e.target.value));
+        <input
+          type="number"
+          defaultValue={Number(disk.diskSizeGb)}
+          onChange={(e) => {
+            setNewDiskSizeGb(Number(e.target.value));
+          }}
+          value={newDiskSizeGb}
+          className="input input-bordered input-xs"
+        />
+        {newDiskSizeGb != disk.diskSizeGb && (
+          <button
+            onClick={(e) => {
+              // Tối đa 65,536 GB
+              saveDiskChange(newDiskSizeGb);
             }}
-            value={newDiskSizeGb}
-            className="input input-bordered input-xs"
-          />
-          {newDiskSizeGb != disk.diskSizeGb && (
-            <button onClick={(e) => saveDiskChange(newDiskSizeGb)}>
-              <Save></Save>
-            </button>
-          )}
-        </div>
+          >
+            <Save></Save>
+          </button>
+        )}
       </th>
       <td>{zone}</td>
       <td>{disk.type}</td>
