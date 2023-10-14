@@ -18,12 +18,9 @@ export async function GET(req: NextRequest) {
   const machineType = Number(p.get("machineType"));
 
   if (!instanceName || !zone || !machineType) {
-    return NextResponse.json({ error: "Bad request!" });
+    return util.ResponseErrorBadRequest();
   }
   return NextResponse.json(
     await gc.resizeInstanceDisk(zone, instanceName, machineType)
   );
 }
-// export async function GET(req: Request) {
-//   return NextResponse.json(await gc.listAllInstances());
-// }

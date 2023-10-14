@@ -10,6 +10,3 @@ export async function GET(req: Request) {
     (await gc.getInstancesByEmail(session?.user?.email as string)) || []
   );
 }
-// export async function GET(req: Request) {
-//   return NextResponse.json(await gc.listAllInstances());
-// }
