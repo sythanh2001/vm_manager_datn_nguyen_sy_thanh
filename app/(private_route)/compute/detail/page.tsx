@@ -15,8 +15,10 @@ import { Save } from "@mui/icons-material";
 export interface IPageProps {}
 
 function RowDiskInfo({
+  instance,
   disk,
 }: {
+  instance: google.cloud.compute.v1.IInstance;
   disk: google.cloud.compute.v1.IAttachedDisk;
 }) {
   const [newDiskSizeGb, setNewDiskSizeGb] = React.useState(
@@ -30,10 +32,15 @@ function RowDiskInfo({
   const saveDiskChange = (newDiskSizeGb: number) => {
     axios
       .get("/api/instance/edit/resize-disk", {
-        params: { zone, diskName, newDiskSizeGb },
+        params: {
+          instanceName: instance.zone?.split("/").pop(),
+          zone,
+          diskName,
+          newDiskSizeGb,
+        },
       })
       .then(({ data }) => {
-        console.log(data);
+        window.location.reload();
       });
   };
   return (
@@ -246,7 +253,11 @@ export default function Page(props: IPageProps) {
                   </thead>
                   <tbody>
                     {i.disks.map((x) => (
-                      <RowDiskInfo key={v4()} disk={x}></RowDiskInfo>
+                      <RowDiskInfo
+                        key={v4()}
+                        instance={i}
+                        disk={x}
+                      ></RowDiskInfo>
                     ))}
                   </tbody>
                 </table>

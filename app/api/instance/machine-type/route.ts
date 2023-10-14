@@ -14,6 +14,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(await gc.getMachineTypes(zone));
 }
-// export async function GET(req: Request) {
-//   return NextResponse.json(await gc.listAllInstances());
-// }

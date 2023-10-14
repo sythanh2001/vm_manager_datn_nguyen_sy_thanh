@@ -10,6 +10,7 @@ import {
   DisksClient,
   protos,
 } from "@google-cloud/compute";
+import { google } from "@google-cloud/compute/build/protos/protos";
 import axios from "axios";
 import { JWT } from "google-auth-library";
 
@@ -373,7 +374,10 @@ const gc = {
       instancesClient.close();
     }
   },
-  containsEmail: function (instance: any, targetEmail: string) {
+  containsEmail: function (
+    instance: google.cloud.compute.v1.IInstance,
+    targetEmail: string
+  ) {
     if (instance.metadata && instance.metadata.items) {
       const managersMetadata = instance.metadata.items.find(
         (item: any) => item.key === "managers"

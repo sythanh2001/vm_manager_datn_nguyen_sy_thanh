@@ -8,6 +8,3 @@ export async function GET(req: Request) {
   if (!session?.user) return NextResponse.json({ error: "Bad request!" });
   return NextResponse.json(await gc.getRegions());
 }
-// export async function GET(req: Request) {
-//   return NextResponse.json(await gc.listAllInstances());
-// }
