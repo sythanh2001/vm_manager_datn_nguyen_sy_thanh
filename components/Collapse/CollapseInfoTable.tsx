@@ -8,7 +8,7 @@ export default function CollapseInfoSide({
   data: { label: string; value: any }[];
 }) {
   return (
-    <div className="collapse collapse-arrow bg-base-200 rounded-none">
+    <div className="collapse collapse-arrow bg-base-200">
       <input type="checkbox" defaultChecked={true} />
       <div className="collapse-title text-xl font-medium">{title}</div>
       <div className="collapse-content">
