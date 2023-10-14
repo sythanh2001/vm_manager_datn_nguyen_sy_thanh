@@ -1,3 +1,5 @@
+// Need clean
+
 import {
   InstancesClient,
   MachineImagesClient,
@@ -8,6 +10,8 @@ import {
   DisksClient,
   protos,
 } from "@google-cloud/compute";
+import axios from "axios";
+import { JWT } from "google-auth-library";
 
 const credentials = {
   private_key: (process.env.GOOGLE_CREDENTIALS_PRIVATE_KEY as string)
@@ -30,6 +34,19 @@ const defaultConfig = {
   networkName: "global/networks/default",
   diskSizeGb: 30,
 };
+
+const getAccessToken = async () => {
+  const client = new JWT({
+    email: credentials.client_email,
+    key: credentials.private_key,
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+  const url = `https://dns.googleapis.com/dns/v1/projects/${defaultConfig.projectId}`;
+  const res = await client.request({ url });
+
+  return client.credentials.access_token;
+};
+
 const getMachineImageList = async function () {
   const machineImagesClient = new MachineImagesClient({ credentials });
 
@@ -104,17 +121,19 @@ const resizeInstanceDisk = async function (
   newDiskSizeGb: number
 ) {
   console.log("🚀 ~ file: gCompute.ts:106 ~ newDiskSizeGb:", newDiskSizeGb);
-  const disksClient = new DisksClient({
-    credentials,
-  });
-
+  const token = await getAccessToken();
+  console.log("🚀 ~ file: gCompute.ts:125 ~ token:", token);
   try {
     // Get information about the existing disk
-    const [disk] = await disksClient.get({
-      project: defaultConfig.projectId,
-      zone: zone,
-      disk: diskName,
-    });
+    const response = await axios.get(
+      `https://compute.googleapis.com/compute/v1/projects/${defaultConfig.projectId}/zones/${zone}/disks/${diskName}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const disk = response.data;
     console.log("🚀 ~ file: gCompute.ts:118 ~ disk:", disk);
     if (!disk) {
       throw new Error(`Disk ${diskName} not found.`);
@@ -122,21 +141,26 @@ const resizeInstanceDisk = async function (
 
     // Create a request to resize the disk
     const resizeRequest = {
-      project: defaultConfig.projectId,
-      zone: zone,
-      disk: diskName,
       sizeGb: newDiskSizeGb,
     };
     console.log("🚀 ~ file: gCompute.ts:130 ~ resizeRequest:", resizeRequest);
 
-    // Resize the disk`
+    // Resize the disk
     console.log(`Resizing disk ${diskName} to ${newDiskSizeGb} GB...`);
-    return await disksClient.resize(resizeRequest);
+    const resizeResponse = await axios.post(
+      `https://compute.googleapis.com/compute/v1/projects/${defaultConfig.projectId}/zones/${zone}/disks/${diskName}/resize`,
+      resizeRequest,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log(`Disk ${diskName} resized.`);
+    return resizeResponse.data;
   } catch (err) {
     console.error(`Error increasing disk size for ${diskName}: ${err}`);
     throw err;
-  } finally {
-    disksClient.close();
   }
 };
 const changeInstanceMachineType = async function (
@@ -285,7 +309,7 @@ const gc = {
     const operationsClient = new ZoneOperationsClient({ credentials });
     // Wait for the create operation to complete.
     while (operation.status !== "DONE") {
-      console.log("🚀 ~ file: gCompute.ts:288 ~ operation:", operation)
+      console.log("🚀 ~ file: gCompute.ts:288 ~ operation:", operation);
       try {
         console.log("Wating operation done");
 
