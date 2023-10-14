@@ -136,7 +136,7 @@ const resizeInstanceDisk = async function (
     const disk = response.data;
     console.log("🚀 ~ file: gCompute.ts:118 ~ disk:", disk);
     if (!disk) {
-      throw new Error(`Disk ${diskName} not found.`);
+      return { error: `Disk ${diskName} not found.` };
     }
 
     // Create a request to resize the disk

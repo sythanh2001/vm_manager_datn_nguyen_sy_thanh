@@ -14,14 +14,14 @@ export async function GET(req: NextRequest) {
 
   const p = req.nextUrl.searchParams;
   const zone = p.get("zone");
-  const instanceName = p.get("instanceName");
+  const diskName = p.get("diskName");
   const newDiskSizeGb = Number(p.get("newDiskSizeGb"));
 
-  if (!instanceName || !zone || !newDiskSizeGb) {
+  if (!diskName || !zone || !newDiskSizeGb) {
     return NextResponse.json({ error: "Bad request!" });
   }
   return NextResponse.json(
-    await gc.resizeInstanceDisk(zone, instanceName, newDiskSizeGb)
+    await gc.resizeInstanceDisk(zone, diskName, newDiskSizeGb)
   );
 }
 // export async function GET(req: Request) {

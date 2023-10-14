@@ -9,48 +9,66 @@ import util from "@/lib/util";
 import Link from "next/link";
 import { DNSRecord } from "@/lib/cloudflare";
 import { DefaultLoading } from "@/components/Loading";
+import CollapseInfoSide from "@/components/Collapse/CollapseInfoTable";
+import { Save } from "@mui/icons-material";
 
 export interface IPageProps {}
 
-function Control() {
-  return <div></div>;
-}
-
-function CollapseInfoTable({
-  title,
-  data,
+function RowDiskInfo({
+  disk,
 }: {
-  title: string;
-  data: { label: string; value: any }[];
+  disk: google.cloud.compute.v1.IAttachedDisk;
 }) {
+  const [newDiskSizeGb, setNewDiskSizeGb] = React.useState(
+    Number(disk.diskSizeGb)
+  );
+  const [sourceArr] = React.useState<string[]>(disk.source?.split("/") || []);
+  const [zone] = React.useState(
+    sourceArr[sourceArr.findIndex((x) => x == "zones") + 1]
+  );
+  const [diskName] = React.useState(disk.source?.split("/").pop());
+  const saveDiskChange = (newDiskSizeGb: number) => {
+    axios
+      .get("/api/instance/edit/resize-disk", {
+        params: { zone, diskName, newDiskSizeGb },
+      })
+      .then(({ data }) => {
+        console.log(data);
+      });
+  };
   return (
-    <div className="collapse collapse-arrow bg-base-200">
-      <input type="checkbox" defaultChecked={true} />
-      <div className="collapse-title text-xl font-medium">{title}</div>
-      <div className="collapse-content">
-        <div className="overflow-x-auto">
-          <table className="table table-xs">
-            <thead>
-              <tr>
-                <th className="w-60"></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {data &&
-                data.map((x) => (
-                  <tr key={v4()}>
-                    <th>{x.label}</th>
-                    <td>{x.value}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+    <tr key={v4()}>
+      <td>{diskName}</td>
+      <td>{disk.boot ? "Có" : "Không"}</td>
+      <td>{disk.interface}</td>
+      <th>
+        <div className="tooltip z-50" data-tip="Tối đa 65,536 GB">
+          <input
+            type="number"
+            defaultValue={Number(disk.diskSizeGb)}
+            min={Number(disk.diskSizeGb)}
+            onChange={(e) => {
+              setNewDiskSizeGb(Number(e.target.value));
+            }}
+            value={newDiskSizeGb}
+            className="input input-bordered input-xs"
+          />
+          {newDiskSizeGb != disk.diskSizeGb && (
+            <button onClick={(e) => saveDiskChange(newDiskSizeGb)}>
+              <Save></Save>
+            </button>
+          )}
         </div>
-      </div>
-    </div>
+      </th>
+      <td>{zone}</td>
+      <td>{disk.type}</td>
+      <td>{disk.architecture}</td>
+      <td>{disk.mode}</td>
+      <td>{disk.autoDelete ? "Có" : "Không"}</td>
+    </tr>
   );
 }
+
 function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
   return (
     <iframe
@@ -61,6 +79,7 @@ function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
     ></iframe>
   );
 }
+
 export default function Page(props: IPageProps) {
   const sp = useSearchParams();
   const router = useRouter();
@@ -98,6 +117,7 @@ export default function Page(props: IPageProps) {
         if (!data.name) {
           console.log("request fail");
         }
+        console.log("🚀 ~ file: page.tsx:120 ~ .then ~ data:", data);
         setInstance(data.instance);
 
         const domainTemp = data.instance.metadata?.items?.find(
@@ -118,7 +138,7 @@ export default function Page(props: IPageProps) {
     <div className="">
       <div className="space-y-5">
         {/* Basic info */}
-        <CollapseInfoTable
+        <CollapseInfoSide
           title="Thông tin cơ bản"
           data={[
             { label: "Tên", value: i.name },
@@ -154,7 +174,7 @@ export default function Page(props: IPageProps) {
               value: util.timeFormat(i.lastStopTimestamp),
             },
           ]}
-        ></CollapseInfoTable>
+        ></CollapseInfoSide>
         {/* Resource manager */}
         {externalIP && (
           <div className="collapse collapse-arrow bg-base-200">
@@ -187,7 +207,7 @@ export default function Page(props: IPageProps) {
           </div>
         )}
         {/* Machine config */}
-        <CollapseInfoTable
+        <CollapseInfoSide
           title="Cấu hình máy"
           data={[
             { label: "Kiểu máy", value: i.machineType?.split("/").pop() },
@@ -198,9 +218,45 @@ export default function Page(props: IPageProps) {
               value: i.displayDevice?.enableDisplay ? "Hỗ trợ" : "Không hỗ trợ",
             },
           ]}
-        ></CollapseInfoTable>
+        ></CollapseInfoSide>
+        {/* Storage */}
+        {i.disks && (
+          <div className="collapse collapse-arrow bg-base-200 rounded-none">
+            <input type="checkbox" defaultChecked={true} />
+            <div className="collapse-title text-xl font-medium">Lưu trữ</div>
+            <div className="collapse-content">
+              <div className="overflow-x-auto">
+                <table className="table table-xs">
+                  <thead>
+                    <tr>
+                      {[
+                        "Tên",
+                        "Boot",
+                        "Interface Type",
+                        "Kích thước (GB)",
+                        "Khu vực",
+                        "Kiểu",
+                        "Kiến trúc",
+                        "Chế độ",
+                        "Khi xoá cùng instance",
+                      ].map((x) => (
+                        <th key={v4()}>{x}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {i.disks.map((x) => (
+                      <RowDiskInfo key={v4()} disk={x}></RowDiskInfo>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Network config */}
-        <CollapseInfoTable
+        <CollapseInfoSide
           title="Cấu hình mạng"
           data={[
             {
@@ -267,7 +323,7 @@ export default function Page(props: IPageProps) {
               ),
             },
           ]}
-        ></CollapseInfoTable>
+        ></CollapseInfoSide>
         {/* Cloudflare */}
       </div>
     </div>
