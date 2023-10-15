@@ -28,12 +28,6 @@ export interface CreateMachineConfig {
 }
 const defaultConfig = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID as string,
-  region: "asia-southeast1",
-  zone: "asia-east1-b",
-  machineType: "e2-small",
-  sourceImage: "projects/f2app-154608/global/machineImages/code-sep-minoring",
-  networkName: "global/networks/default",
-  diskSizeGb: 30,
 };
 
 const getAccessToken = async () => {
@@ -229,7 +223,7 @@ const gc = {
   createInstance: async function (
     instanceName: string,
     zone: string,
-    region: string,
+    machineType: string,
     sourceImage: string,
     diskSizeGb: number,
     author: string,
@@ -273,7 +267,7 @@ const gc = {
           labels: {
             "goog-ec-src": "vm_add-rest",
           },
-          machineType: `zones/${zone}/machineTypes/${defaultConfig.machineType}`,
+          machineType: `zones/${zone}/machineTypes/${machineType}`,
           metadata: {
             items: metadataItems,
           },
@@ -299,9 +293,7 @@ const gc = {
         zone: zone,
       };
 
-    console.log(
-      `Creating the ${instanceName} instance in ${defaultConfig.zone}...`
-    );
+    console.log(`Creating the ${instanceName} instance in ${zone}...`);
     const [response] = await instancesClient.insert(defaultInsertResource);
     console.log("Create complete");
 

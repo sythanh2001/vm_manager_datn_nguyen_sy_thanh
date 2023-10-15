@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const instanceName = p.get("instanceName");
   const zone = p.get("zone");
-  const region = p.get("region");
+  const machineType = p.get("machineType");
   const diskSize = Number(p.get("diskSize"));
   const sourceImage = p.get("sourceImage");
   const subDomain = p.get("subDomain");
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (
     !instanceName ||
     !zone ||
-    !region ||
+    !machineType ||
     !sourceImage ||
     !diskSize ||
     diskSize < 10
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const createInstanceRes = await gc.createInstance(
     instanceName,
     zone,
-    region,
+    machineType,
     sourceImage,
     diskSize,
     session.user?.email as string,

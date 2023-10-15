@@ -33,7 +33,7 @@ services:
       - "GF_RENDERING_SERVER_URL=http://renderer:8081/render"
       - "GF_RENDERING_CALLBACK_URL=http://grafana:3001/"
       - "GF_SECURITY_ALLOW_EMBEDDING=true"
-      - "GF_SERVER_PROTOCOL=https"
+      - "GF_SERVER_PROTOCOL=http"
       - "GF_SERVER_CERT_FILE=/etc/ssl/grafana.pem"
       - "GF_SERVER_CERT_KEY=/etc/ssl/grafana-key.pem"
       - "GF_SMTP_ENABLED=true"

@@ -54,6 +54,9 @@ function RowDiskInfo({
           defaultValue={Number(disk.diskSizeGb)}
           onChange={(e) => {
             setNewDiskSizeGb(Number(e.target.value));
+            // Tối đa 65,536 GB
+            if (e.target) {
+            }
           }}
           value={newDiskSizeGb}
           className="input input-bordered input-xs"
@@ -61,7 +64,6 @@ function RowDiskInfo({
         {newDiskSizeGb != disk.diskSizeGb && (
           <button
             onClick={(e) => {
-              // Tối đa 65,536 GB
               saveDiskChange(newDiskSizeGb);
             }}
           >
@@ -81,7 +83,7 @@ function RowDiskInfo({
 function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
   return (
     <iframe
-      src={`https://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
+      src={`http://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
       className="w-full"
       frameBorder="0"
       scrolling="no"
