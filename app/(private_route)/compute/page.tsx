@@ -117,6 +117,7 @@ function InstanceList() {
                   i.name as string,
                   zoneName as string
                 );
+
                 toast.promise(res, {
                   pending: `Đang ${actionName}`,
                   success: `${actionName} thành công`,

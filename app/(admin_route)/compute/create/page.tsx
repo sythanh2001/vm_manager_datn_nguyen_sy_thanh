@@ -215,12 +215,21 @@ export default function Create(props: ICreateProps) {
         subDomain,
       },
     });
-    createPromise.finally(() => {
-      setWaitingCreateVM(false);
-    });
+
+    createPromise
+      .then(({ data }: { data: google.cloud.compute.v1.IInstance }) => {
+        router.push(
+          `/compute/detail?zone=${data.zone?.split("/").pop()}&instanceName=${
+            data.name
+          }`
+        );
+      })
+      .finally(() => {
+        setWaitingCreateVM(false);
+      });
     toast.promise(createPromise, {
       pending:
-        "Đang khởi tạo quá trình có thể mấy vài phút để khởi đông hệ diều hành...",
+        "Đang khởi tạo quá trình có thể mất vài phút để khởi đông hệ diều hành...",
       success: "Khởi tạo thành công",
       error:
         "Khởi tạo không thành công vui lòng kiểm tra lại các trường thông tin hoặc lệ hệ với nhà phát triển để được hỗ trợ",
