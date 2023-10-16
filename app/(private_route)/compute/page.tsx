@@ -18,6 +18,7 @@ import Link from "next/link";
 import { protos } from "@google-cloud/compute";
 import util from "@/lib/util";
 import { DefaultLoading } from "@/components/Loading";
+import { toast } from "react-toastify";
 
 export interface IComputeProps {}
 
@@ -109,7 +110,19 @@ function InstanceList() {
                   StatusIcon = Autorenew;
                   break;
               }
-
+              const actionHandler = (e: any) => {
+                const actionName = e.target.value;
+                const res = util.InstanceActionHandler(
+                  actionName,
+                  i.name as string,
+                  zoneName as string
+                );
+                toast.promise(res, {
+                  pending: `Đang ${actionName}`,
+                  success: `${actionName} thành công`,
+                  error: `${actionName} thất bại`,
+                });
+              };
               return (
                 <tr className="hover" key={i.id as string}>
                   <th>
@@ -156,77 +169,42 @@ function InstanceList() {
                         className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
                       >
                         <li>
-                          <div
-                            onClick={(e) => {
-                              if (i.status == "SUSPENDED") {
-                                util.InstanceActionHandler(
-                                  "resumeInstance",
-                                  i.name as string,
-                                  zoneName as string
-                                );
-                                return;
-                              }
-                              util.InstanceActionHandler(
-                                "startInstance",
-                                i.name as string,
-                                zoneName as string
-                              );
-                            }}
+                          <button
+                            value={
+                              i.status == "SUSPENDED"
+                                ? "resumeInstance"
+                                : "startInstance"
+                            }
+                            onClick={actionHandler}
                           >
                             Khởi động
-                          </div>
+                          </button>
                         </li>
                         <li>
-                          <div
-                            onClick={(e) =>
-                              util.InstanceActionHandler(
-                                "stopInstance",
-                                i.name as string,
-                                zoneName as string
-                              )
-                            }
-                          >
+                          <button value="stopInstance" onClick={actionHandler}>
                             Dừng
-                          </div>
+                          </button>
                         </li>
                         <li>
-                          <div
-                            onClick={(e) =>
-                              util.InstanceActionHandler(
-                                "suspendInstance",
-                                i.name as string,
-                                zoneName as string
-                              )
-                            }
+                          <button
+                            value="suspendInstance"
+                            onClick={actionHandler}
                           >
                             Tạm dừng
-                          </div>
+                          </button>
                         </li>
                         <li>
-                          <div
-                            onClick={(e) =>
-                              util.InstanceActionHandler(
-                                "resetInstance",
-                                i.name as string,
-                                zoneName as string
-                              )
-                            }
-                          >
+                          <button value="resetInstance" onClick={actionHandler}>
                             Khởi động lại
-                          </div>
+                          </button>
                         </li>
                         <li>
-                          <div
-                            onClick={(e) =>
-                              util.InstanceActionHandler(
-                                "deleteInstance",
-                                i.name as string,
-                                zoneName as string
-                              )
-                            }
+                          <button
+                            value="deleteInstance"
+                            onClick={actionHandler}
                           >
                             Xoá
-                          </div>
+                          </button>
                         </li>
                         <li>
                           <Link
