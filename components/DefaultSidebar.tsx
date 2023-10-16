@@ -54,6 +54,9 @@ function UserInfo() {
   );
 }
 export function DefaultSidebar({ children }: DefaultSidebarProps) {
+  const { data, status } = useSession();
+  const isAuth = status == "authenticated";
+  if (!isAuth) return <>{children}</>;
   return (
     <div className="drawer drawer-open">
       <input id="my-drawer" type="checkbox" className="drawer-toggle" />

@@ -28,20 +28,20 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - /etc/grafana/grafana.ini:/etc/grafana/grafana.ini
-      - /etc/grafana/ssl:/etc/ssl
+      # - /etc/grafana/ssl:/etc/ssl
     environment:
       - "GF_RENDERING_SERVER_URL=http://renderer:8081/render"
       - "GF_RENDERING_CALLBACK_URL=http://grafana:3001/"
       - "GF_SECURITY_ALLOW_EMBEDDING=true"
-      - "GF_SERVER_PROTOCOL=http"
-      - "GF_SERVER_CERT_FILE=/etc/ssl/grafana.pem"
-      - "GF_SERVER_CERT_KEY=/etc/ssl/grafana-key.pem"
-      - "GF_SMTP_ENABLED=true"
+      # - "GF_SERVER_PROTOCOL=http"
+      # - "GF_SERVER_CERT_FILE=/etc/ssl/grafana.pem"
+      # - "GF_SERVER_CERT_KEY=/etc/ssl/grafana-key.pem"
       - "GF_SERVER_HTTP_PORT=3001"
+      - "GF_SMTP_ENABLED=true"
       - "GF_SMTP_HOST=mail90115.maychuemail.com:465"
-      - "GF_SMTP_USER=hello@codeonline.com"
+      - "GF_SMTP_USER=hello@codeonline.vn"
       - "GF_SMTP_PASSWORD=codeo740"
-      - "GF_SMTP_FROM_ADDRESS=sythanh2k1@gmail.com"
+      - "GF_SMTP_FROM_ADDRESS=hello@codeonline.vn"
     restart: unless-stopped
   renderer:
     image: grafana/grafana-image-renderer:latest
