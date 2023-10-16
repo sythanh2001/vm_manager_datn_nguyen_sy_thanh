@@ -134,7 +134,7 @@ export default function Create(props: ICreateProps) {
     React.useState<MachineTypeGroup[]>();
   const [machineImageList, setMachineImageList] =
     React.useState<google.cloud.compute.v1.IMachineImage[]>();
-
+  const [minDisk, setMinDisk] = React.useState(0);
   //Input
   const [instanceName, setInstanceName] = React.useState<string>();
   const [subDomain, setSubDomain] = React.useState<string>();
@@ -201,7 +201,15 @@ export default function Create(props: ICreateProps) {
   const onMachineTypeGroupChange = React.useCallback((groupName: string) => {
     setMachineGroupSelected(groupName);
   }, []);
-
+  const onImageChange = (imageName: string) => {
+    const minDiskSize = machineImageList
+      ?.find((x) => x.name == imageName)
+      ?.instanceProperties?.disks?.find((x) => x.autoDelete && x.boot)
+      ?.diskSizeGb as number;
+    setDiskSize(minDiskSize);
+    setMinDisk(minDiskSize);
+    setSourceImage(imageName);
+  };
   const createVM = () => {
     setWaitingCreateVM(true);
     const createPromise = axios.get("/api/instance/create", {
@@ -243,7 +251,14 @@ export default function Create(props: ICreateProps) {
       )
       .then(({ data }) => {
         setMachineImageList(data);
+
         if (data.at(0)?.name) {
+          const minDiskSize = data
+            ?.find((x) => x.name == data.at(0)?.name)
+            ?.instanceProperties?.disks?.find((x) => x.autoDelete && x.boot)
+            ?.diskSizeGb as number;
+          setDiskSize(minDiskSize);
+          setMinDisk(minDiskSize);
           setSourceImage(data.at(0)?.name as string);
         }
       });
@@ -382,7 +397,12 @@ export default function Create(props: ICreateProps) {
           <div className="w-full">
             <label className="label">
               <span className="label-text">
-                Kích thước ổ đĩa (Chưa bao gồm kích thước gốc của máy ảo )
+                Kích thước ổ đĩa{" "}
+                {diskSize < minDisk && (
+                  <span className="text-red-500">
+                    (chỉ có thể lớn hơn hoặc bằng đĩa gốc)
+                  </span>
+                )}
               </span>
             </label>
             <label className="input-group">
@@ -405,7 +425,7 @@ export default function Create(props: ICreateProps) {
             </label>
             <select
               value={sourceImage}
-              onChange={(e) => setSourceImage(e.target.value)}
+              onChange={(e) => onImageChange(e.target.value)}
               className="select select-bordered w-full"
             >
               {!machineImageList && (
@@ -426,6 +446,7 @@ export default function Create(props: ICreateProps) {
           <button
             className={`btn btn-success ${
               waitingCreateVM ||
+              diskSize < minDisk ||
               !instanceName ||
               !machineTypeSelected ||
               !zoneSelected ||
