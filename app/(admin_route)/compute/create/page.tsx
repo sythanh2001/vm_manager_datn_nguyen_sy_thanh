@@ -7,6 +7,7 @@ import { protos } from "@google-cloud/compute";
 import { v4 } from "uuid";
 import _, { Dictionary } from "lodash";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 export interface ICreateProps {}
 
 export interface MachineTypeGroup {
@@ -133,7 +134,7 @@ export default function Create(props: ICreateProps) {
     React.useState<MachineTypeGroup[]>();
   const [machineImageList, setMachineImageList] =
     React.useState<google.cloud.compute.v1.IMachineImage[]>();
-  const [alert, setAlert] = React.useState<string>();
+
   //Input
   const [instanceName, setInstanceName] = React.useState<string>();
   const [subDomain, setSubDomain] = React.useState<string>();
@@ -144,7 +145,7 @@ export default function Create(props: ICreateProps) {
   const [zoneSelected, setZoneSelected] = React.useState<string>();
   const [sourceImage, setSourceImage] = React.useState<string>();
   const [diskSize, setDiskSize] = React.useState(50);
-
+  const [waitingCreateVM, setWaitingCreateVM] = React.useState(false);
   //Handler
   const clearAllMachineData = () => {
     setMachineGroupSelected(undefined);
@@ -202,27 +203,28 @@ export default function Create(props: ICreateProps) {
   }, []);
 
   const createVM = () => {
-    axios
-      .get("/api/instance/create", {
-        params: {
-          instanceName,
-          zone: zoneSelected,
-          region: regionSelected,
-          machineType: machineTypeSelected,
-          diskSize,
-          sourceImage,
-          subDomain,
-        },
-      })
-      .catch((e) => {
-        console.log("🚀 ~ file: page.tsx:218 ~ createVM ~ e:", e);
-
-        setAlert(
-          "Khởi tạo không thành công vui lòng kiểm tra lại các trường thông tin hoặc lệ hệ với nhà phát triển để được hỗ trợ"
-        );
-        // @ts-ignore
-        document.getElementById("alert-modal").showModal();
-      });
+    setWaitingCreateVM(true);
+    const createPromise = axios.get("/api/instance/create", {
+      params: {
+        instanceName,
+        zone: zoneSelected,
+        region: regionSelected,
+        machineType: machineTypeSelected,
+        diskSize,
+        sourceImage,
+        subDomain,
+      },
+    });
+    createPromise.finally(() => {
+      setWaitingCreateVM(false);
+    });
+    toast.promise(createPromise, {
+      pending:
+        "Đang khởi tạo quá trình có thể mấy vài phút để khởi đông hệ diều hành...",
+      success: "Khởi tạo thành công",
+      error:
+        "Khởi tạo không thành công vui lòng kiểm tra lại các trường thông tin hoặc lệ hệ với nhà phát triển để được hỗ trợ",
+    });
   };
   React.useEffect(() => {
     axios.get("/api/instance/regions").then(({ data }) => setRegionsList(data));
@@ -240,16 +242,6 @@ export default function Create(props: ICreateProps) {
 
   return (
     <div className="content-center">
-      {/* Alert */}
-
-      <dialog id="alert-modal" className="modal">
-        <div className="modal-box">
-          <p className="py-4">{alert}</p>
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
       <div className="form-control ml-52 mr-52 space-y-5">
         {/* Name */}
         <div className="flex space-x-5">
@@ -424,6 +416,7 @@ export default function Create(props: ICreateProps) {
         <div className="space-x-4">
           <button
             className={`btn btn-success ${
+              waitingCreateVM ||
               !instanceName ||
               !machineTypeSelected ||
               !zoneSelected ||
@@ -432,7 +425,9 @@ export default function Create(props: ICreateProps) {
                 ? "btn-disabled"
                 : ""
             }`}
-            onClick={() => createVM()}
+            onClick={() => {
+              createVM();
+            }}
           >
             Khởi tạo
           </button>

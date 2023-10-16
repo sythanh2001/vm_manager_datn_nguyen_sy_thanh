@@ -11,7 +11,7 @@ import { DNSRecord } from "@/lib/cloudflare";
 import { DefaultLoading } from "@/components/Loading";
 import CollapseInfoSide from "@/components/Collapse/CollapseInfoTable";
 import { Save } from "@mui/icons-material";
-
+import { toast } from "react-toastify";
 export interface IPageProps {}
 
 function RowDiskInfo({
@@ -64,6 +64,10 @@ function RowDiskInfo({
         {newDiskSizeGb != disk.diskSizeGb && (
           <button
             onClick={(e) => {
+              if (newDiskSizeGb < Number(disk.diskSizeGb)) {
+                toast.error("Chỉ có thể tăng bộ nhớ");
+                return;
+              }
               saveDiskChange(newDiskSizeGb);
             }}
           >
