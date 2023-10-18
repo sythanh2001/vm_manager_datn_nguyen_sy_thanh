@@ -168,32 +168,45 @@ const changeInstanceMachineType = async function (
   });
 
   try {
-    // Lấy thông tin instance hiện tại
-    const [instance] = await instancesClient.get({
-      project: defaultConfig.projectId,
-      zone: zone,
-      instance: instanceName,
-    });
-
-    if (!instance) {
-      throw new Error(`Instance ${instanceName} not found.`);
-    }
-
-    // Tạo một request để cập nhật loại máy ảo của instance
-    const updateRequest: protos.google.cloud.compute.v1.SetMachineTypeInstanceRequest =
-      {
+    // First, stop the instance
+    try {
+      console.log(`Stopping instance ${instanceName} in zone ${zone}...`);
+      await instancesClient.stop({
         project: defaultConfig.projectId,
         zone: zone,
         instance: instanceName,
-        instancesSetMachineTypeRequestResource: {
-          machineType: `zones/${zone}/machineTypes/${newMachineType}`,
-        },
-        toJSON: function (): { [k: string]: any } {
-          throw new Error("Function not implemented.");
-        },
-      };
+      });
+    } catch (error) {
+      console.log("🚀 ~ file: gCompute.ts:180 ~ error:", error);
+    }
 
-    // Gửi yêu cầu cập nhật loại máy ảo của instance
+    // Wait for the instance to be in a stopped state
+    let instanceStatus;
+    do {
+      await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait for 5 seconds
+      const [instance] = await instancesClient.get({
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+      });
+      instanceStatus = instance.status;
+      console.log(`Instance status: ${instanceStatus}`);
+    } while (instanceStatus !== "TERMINATED");
+
+    console.log(`Instance ${instanceName} is fully stopped.`);
+
+    // Now, change the machine type
+    // Create a request to change the machine type of the instance
+    const updateRequest = {
+      project: defaultConfig.projectId,
+      zone: zone,
+      instance: instanceName,
+      instancesSetMachineTypeRequestResource: {
+        machineType: `zones/${zone}/machineTypes/${newMachineType}`,
+      },
+    };
+
+    // Send the request to change the machine type
     console.log(
       `Changing machine type of instance ${instanceName} to ${newMachineType}...`
     );
@@ -201,7 +214,14 @@ const changeInstanceMachineType = async function (
     console.log(
       `Machine type of instance ${instanceName} changed to ${newMachineType}.`
     );
-
+    // Now, start the instance again
+    console.log(`Starting instance ${instanceName} in zone ${zone}...`);
+    await instancesClient.start({
+      project: defaultConfig.projectId,
+      zone: zone,
+      instance: instanceName,
+    });
+    console.log(`Instance ${instanceName} started.`);
     return response;
   } catch (err) {
     console.error(

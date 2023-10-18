@@ -14,13 +14,16 @@ export async function GET(req: NextRequest) {
 
   const p = req.nextUrl.searchParams;
   const zone = p.get("zone");
+  console.log("🚀 ~ file: route.ts:17 ~ GET ~ zone:", zone);
   const instanceName = p.get("instanceName");
-  const machineType = Number(p.get("machineType"));
+  console.log("🚀 ~ file: route.ts:19 ~ GET ~ instanceName:", instanceName);
+  const machineType = p.get("machineType");
+  console.log("🚀 ~ file: route.ts:21 ~ GET ~ machineType:", machineType);
 
   if (!instanceName || !zone || !machineType) {
     return util.ResponseErrorBadRequest();
   }
   return NextResponse.json(
-    await gc.resizeInstanceDisk(zone, instanceName, machineType)
+    await gc.changeInstanceMachineType(zone, instanceName, machineType)
   );
 }
