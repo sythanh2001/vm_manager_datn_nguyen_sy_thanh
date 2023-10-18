@@ -1,2 +1,0 @@
-- Remove ssh key out metadata
-- fix resize sigeGb = 0 api/instance/edit/resize-disk

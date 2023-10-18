@@ -1,7 +1,8 @@
 // components/Register.js
 "use client";
 import React, { useState } from "react";
-
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -9,7 +10,7 @@ const Register = () => {
     password: "",
     confirmPassword: "",
   });
-
+  const router = useRouter();
   const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -21,19 +22,26 @@ const Register = () => {
       console.log("confirm password not match!");
       return;
     }
-    const res = await fetch("/api/auth/users", {
+    const res = fetch("/api/auth/users", {
       method: "POST",
       body: JSON.stringify({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       }),
-    }).then((res: any) => res.json());
+    }).then((res: any) => {
+      router.push("/auth/signin");
+    });
+    toast.promise(res, {
+      pending: "Đang gửi yêu cầu đăng ký",
+      success: "Đăng ký thành công",
+      error: "Đăng ký thất bại",
+    });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-white shadow-md rounded-lg p-8 max-w-md">
+      <div className="shadow-md rounded-lg p-8 max-w-md">
         <h2 className="text-2xl font-semibold mb-6">Đăng ký</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

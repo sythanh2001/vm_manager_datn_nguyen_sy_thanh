@@ -37,11 +37,15 @@ export async function GET(req: NextRequest) {
 
   if (externalIP) {
     grafana.changeBaseURL(externalIP);
-    const alertRules = (await grafana.getAllAlertRules()).data;
-    const defaultContact = (await grafana.getAllContactPoints()).data.find(
-      (x: any) => x.name == "manager"
-    );
-    resData = { ...resData, grafana: { alertRules, defaultContact } };
+    try {
+      const alertRules = (await grafana.getAllAlertRules()).data;
+      const defaultContact = (await grafana.getAllContactPoints()).data.find(
+        (x: any) => x.name == "manager"
+      );
+      resData = { ...resData, grafana: { alertRules, defaultContact } };
+    } catch (error) {
+      console.log("🚀 ~ file: route.ts:47 ~ GET ~ error:", error);
+    }
   }
 
   return NextResponse.json(resData);

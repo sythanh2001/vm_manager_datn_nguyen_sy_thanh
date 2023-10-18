@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,24 +12,28 @@ export default function LoginPage() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
-    const result = await signIn("credentials", {
+    const result = signIn("credentials", {
       redirect: false,
       email,
       password,
     });
-
-    if (result && !result.error) {
+    toast.promise(result, {
+      pending: "Đang đăng nhập...",
+      success: "Đăng nhập thanh công",
+      error: "Đăng nhập thất bại",
+    });
+    result.then(() => {
       router.push("/compute");
-    }
+    });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+      <div className="p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-4">Đăng nhập</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-600">
+            <label htmlFor="email" className="block">
               Email
             </label>
             <input
@@ -42,7 +47,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="password" className="block text-gray-600">
+            <label htmlFor="password" className="block">
               Password
             </label>
             <input
@@ -69,14 +74,14 @@ export default function LoginPage() {
           >
             Đăng nhập bằng Google
           </button>
-          <button
+          {/* <button
             onClick={() => signIn("github")}
             className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 ml-2"
           >
             Đăng nhập bằng GitHub
-          </button>
+          </button> */}
         </div>
-        <p className="mt-4 text-gray-600">
+        <p className="mt-4">
           Bạn chưa có tài khoản?{" "}
           <Link href="/auth/register">
             <b className="text-blue-500 hover:underline">Đăng ký ngay</b>
