@@ -152,7 +152,7 @@ function RowAlertRule({
           <input
             type="checkbox"
             defaultChecked={!alertInfo.isPaused}
-            onChange={(e) => updateRule("isPaused", e.target.checked)}
+            onChange={(e) => updateRule("isPaused", !e.target.checked)}
             className="toggle toggle-primary"
           />
         }
@@ -287,7 +287,7 @@ export default function Page(props: IPageProps) {
         ></CollapseInfoSide>
 
         {/* Resource manager */}
-        {externalIP && (
+        {externalIP && alertRules && (
           <div className="collapse collapse-arrow bg-base-200">
             <input type="checkbox" defaultChecked={true} />
             <div className="collapse-title text-xl font-medium">

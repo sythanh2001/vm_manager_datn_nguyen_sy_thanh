@@ -10,7 +10,6 @@ export async function GET(req: NextRequest) {
   const limit = Number(p.get("limit"));
   const isPaused = p.get("isPaused") == "true";
   console.log("🚀 ~ file: route.ts:12 ~ GET ~ isPaused:", isPaused);
-  console.log("🚀 ~ file: route.ts:11 ~ GET ~ limit:", limit);
   if (!baseUrl || !uid) {
     return util.ResponseErrorBadRequest();
   }
@@ -18,7 +17,6 @@ export async function GET(req: NextRequest) {
   if (!session?.user) return util.ResponseErrorAuth();
   grafana.changeBaseURL(baseUrl);
   const oldRule = (await grafana.getAlertRule(uid)).data;
-  console.log("🚀 ~ file: route.ts:21 ~ GET ~ oldRule:", oldRule);
   oldRule.data.map((x: any) => {
     if (x.refId == "C") {
       if (limit) {
@@ -30,6 +28,7 @@ export async function GET(req: NextRequest) {
   });
   if (isPaused != null) {
     oldRule.isPaused = isPaused;
+    console.log("🚀 ~ file: route.ts:32 ~ GET ~ oldRule:", oldRule);
   }
   const res = await grafana.updateAlertRule(uid, oldRule);
   return NextResponse.json(res.data);

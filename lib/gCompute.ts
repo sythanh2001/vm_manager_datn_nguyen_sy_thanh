@@ -315,8 +315,12 @@ const gc = {
         console.log("🚀 ~ file: gCompute.ts:297 ~ error:", error);
       }
     }
-    await gc.resizeInstanceDisk(zone, instanceName, diskSizeGb);
-    console.log("resize disk complete");
+    try {
+      await gc.resizeInstanceDisk(zone, instanceName, diskSizeGb);
+      console.log("resize disk complete");
+    } catch (error) {
+      console.log("🚀 ~ file: gCompute.ts:322 ~ error:", error);
+    }
 
     return await this.getInstanceInfo(zone, instanceName);
   },

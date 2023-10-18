@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const zone = p.get("zone");
   const instanceName = p.get("instanceName");
+  const firstStart = p.get("firstStart") == "true";
 
   const session = await getServerSession(authOptions);
   if (!zone || !instanceName || !session) {
@@ -36,15 +37,16 @@ export async function GET(req: NextRequest) {
   let resData: any = { instance, cloudflare };
 
   if (externalIP) {
-    grafana.changeBaseURL(externalIP);
     try {
+      grafana.changeBaseURL(externalIP);
+
       const alertRules = (await grafana.getAllAlertRules()).data;
       const defaultContact = (await grafana.getAllContactPoints()).data.find(
         (x: any) => x.name == "manager"
       );
       resData = { ...resData, grafana: { alertRules, defaultContact } };
     } catch (error) {
-      console.log("🚀 ~ file: route.ts:47 ~ GET ~ error:", error);
+      console.log("🚀 ~ file: route.ts:49 ~ GET ~ error:", error);
     }
   }
 

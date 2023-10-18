@@ -1,0 +1,2 @@
+Thêm controller cho trang chi tiết instance và refresh
+Thêm thay đổi machine type
