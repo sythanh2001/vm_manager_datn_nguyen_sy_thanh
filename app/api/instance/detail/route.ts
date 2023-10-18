@@ -3,6 +3,7 @@ import gc from "@/lib/gCompute";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import cf, { CLOUDFLARE_ZONE_ID } from "@/lib/cloudflare";
+import grafana from "@/lib/grafana";
 
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
@@ -28,6 +29,20 @@ export async function GET(req: NextRequest) {
       (x: any) => x.name == domainTemp
     );
   }
+  const externalIP = instance.networkInterfaces
+    ?.at(0)
+    ?.accessConfigs?.at(0)?.natIP;
 
-  return NextResponse.json({ instance, cloudflare });
+  let resData: any = { instance, cloudflare };
+
+  if (externalIP) {
+    grafana.changeBaseURL(externalIP);
+    const alertRules = (await grafana.getAllAlertRules()).data;
+    const defaultContact = (await grafana.getAllContactPoints()).data.find(
+      (x: any) => x.name == "manager"
+    );
+    resData = { ...resData, grafana: { alertRules, defaultContact } };
+  }
+
+  return NextResponse.json(resData);
 }

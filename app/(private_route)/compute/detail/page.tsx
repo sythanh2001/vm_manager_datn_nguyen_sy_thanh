@@ -12,6 +12,7 @@ import { DefaultLoading } from "@/components/Loading";
 import CollapseInfoSide from "@/components/Collapse/CollapseInfoTable";
 import { Save } from "@mui/icons-material";
 import { toast } from "react-toastify";
+import { AlertRule as AlertRule, Contact } from "@/lib/grafana";
 export interface IPageProps {}
 
 function RowDiskInfo({
@@ -83,7 +84,82 @@ function RowDiskInfo({
     </tr>
   );
 }
+function RowAlertRule({
+  alertRule,
+  externalIP,
+}: {
+  alertRule: AlertRule;
+  externalIP: string;
+}) {
+  const [alertInfo, setAlertInfo] = React.useState(alertRule);
+  const [limit, setLimit] = React.useState(() => {
+    // @ts-ignore
+    return alertRule?.data
+      ?.find((x) => x.refId == "C")
+      ?.model?.conditions.at(0)
+      .evaluator.params.at(0);
+  });
+  const [isFocusLimit, setIsFocusLimit] = React.useState(false);
+  const updateRule = (action: "isPaused" | "limit", value: any) => {
+    let params = {
+      baseUrl: externalIP,
+      uid: alertInfo.uid,
+      limit,
+      isPaused: alertInfo.isPaused,
+    };
+    params = { ...params, [action]: value };
+    if (action == "isPaused") {
+      setAlertInfo({ ...alertInfo, isPaused: value });
+    }
 
+    const res = axios
+      .get("/api/grafana/alert/update", {
+        params: params,
+      })
+      .then(({ data }) => {
+        setAlertInfo(data);
+      });
+    toast.promise(res, {
+      pending: `Đang cập nhật ${alertInfo.title}`,
+      success: `Cập nhật  ${alertInfo.title} thành công`,
+      error: `Cập nhật  ${alertInfo.title} thất bại`,
+    });
+  };
+
+  return (
+    <tr className="hover">
+      <td>{alertInfo.title}</td>
+      <td>
+        {isFocusLimit && (
+          <div className="text-red-500">Tự động lưu khi dừng chỉnh sửa</div>
+        )}
+        {
+          <input
+            type="number"
+            defaultValue={limit}
+            onFocus={(e) => setIsFocusLimit(true)}
+            onBlur={(e) => {
+              setIsFocusLimit(false);
+              if (Number(e.target.value) != limit)
+                updateRule("limit", e.target.value);
+            }}
+            className="input input-bordered input-xs"
+          />
+        }
+      </td>
+      <td>
+        {
+          <input
+            type="checkbox"
+            defaultChecked={!alertInfo.isPaused}
+            onChange={(e) => updateRule("isPaused", e.target.checked)}
+            className="toggle toggle-primary"
+          />
+        }
+      </td>
+    </tr>
+  );
+}
 function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
   return (
     <iframe
@@ -102,8 +178,26 @@ export default function Page(props: IPageProps) {
   const [externalIP, setExternalIP] = React.useState<string>();
   const [domain, setDomain] = React.useState<string>();
   const [zone, setZone] = React.useState<string>();
+  const [alertRules, setAlertRules] = React.useState<AlertRule[]>();
+  const [alertContact, setAlertContact] = React.useState<Contact>();
+  const [isEditingContact, setIsEditingContact] =
+    React.useState<boolean>(false);
+
   const [cloudflareDNS, setCloudflareDNS] = React.useState<DNSRecord>();
   const [loadingSyncDNS, setLoadingSyncDNS] = React.useState(false);
+  const onUpdateContact = (addresses: string) => {
+    if (addresses == alertContact?.settings.addresses) {
+      return;
+    }
+    const res = axios.get("/api/grafana/contact/update", {
+      params: { baseUrl: externalIP, uid: alertContact?.uid, addresses },
+    });
+    toast.promise(res, {
+      pending: "Đang cập nhật địa chỉ cảnh báo",
+      success: "Cập nhật địa chỉ cảnh báo thành công",
+      error: "Cập nhật địa chỉ cảnh báo thất bại",
+    });
+  };
   const onSyncDNS = () => {
     setLoadingSyncDNS(true);
     axios
@@ -128,7 +222,6 @@ export default function Page(props: IPageProps) {
         )}`
       )
       .then(({ data }) => {
-        // console.log("🚀 ~ file: page.tsx:72 ~ .then ~ data:", data);
         if (!data.name) {
           console.log("request fail");
         }
@@ -145,6 +238,8 @@ export default function Page(props: IPageProps) {
         );
         setZone(data.instance.zone?.split("/").pop());
         setCloudflareDNS(data.cloudflare);
+        setAlertRules(data.grafana.alertRules);
+        setAlertContact(data.grafana.defaultContact);
       });
   }, [sp]);
 
@@ -190,6 +285,7 @@ export default function Page(props: IPageProps) {
             },
           ]}
         ></CollapseInfoSide>
+
         {/* Resource manager */}
         {externalIP && (
           <div className="collapse collapse-arrow bg-base-200">
@@ -221,6 +317,62 @@ export default function Page(props: IPageProps) {
             </div>
           </div>
         )}
+        {/* Alert Rules */}
+        {alertRules && externalIP && (
+          <div className="collapse collapse-arrow bg-base-200">
+            <input type="checkbox" defaultChecked={true} />
+            <div className="collapse-title text-xl font-medium">
+              Cấu hình cảnh báo
+            </div>
+            <div className="collapse-content">
+              {/* Contact */}
+
+              {alertContact && (
+                <div>
+                  <div>
+                    {`Danh sách dịa chỉ email được nhận cảnh báo phân cách bằng
+                    ký tự ";"`}{" "}
+                    {isEditingContact && (
+                      <span className="text-red-500">
+                        Ngừng chỉnh sửa để lưu
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    className="textarea textarea-primary w-full"
+                    onFocus={(e) => setIsEditingContact(true)}
+                    onBlur={(e) => {
+                      onUpdateContact(e.target.value.trim());
+                      setIsEditingContact(false);
+                    }}
+                    defaultValue={alertContact.settings.addresses}
+                  ></textarea>
+                </div>
+              )}
+              <div className="overflow-x-auto">
+                <table className="table">
+                  {/* Rule */}
+                  <thead>
+                    <tr>
+                      <th>Tên</th>
+                      <th>Giới hạn cảnh báo %</th>
+                      <th>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alertRules.map((x) => (
+                      <RowAlertRule
+                        key={x.uid}
+                        alertRule={x}
+                        externalIP={externalIP}
+                      ></RowAlertRule>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Machine config */}
         <CollapseInfoSide
           title="Cấu hình máy"
@@ -236,7 +388,7 @@ export default function Page(props: IPageProps) {
         ></CollapseInfoSide>
         {/* Storage */}
         {i.disks && (
-          <div className="collapse collapse-arrow bg-base-200 rounded-none">
+          <div className="collapse collapse-arrow bg-base-200">
             <input type="checkbox" defaultChecked={true} />
             <div className="collapse-title text-xl font-medium">Lưu trữ</div>
             <div className="collapse-content">

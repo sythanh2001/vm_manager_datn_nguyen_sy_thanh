@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   if (!session?.user) return util.ResponseErrorAuth();
   grafana.changeBaseURL(baseUrl);
   const oldRule = (await grafana.getAlertRule(uid)).data;
+  console.log("🚀 ~ file: route.ts:21 ~ GET ~ oldRule:", oldRule);
   oldRule.data.map((x: any) => {
     if (x.refId == "C") {
       if (limit) {

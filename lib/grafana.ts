@@ -1,4 +1,82 @@
 import axios, { AxiosResponse } from "axios";
+export type AlertRule = {
+  id: number;
+  uid: string;
+  orgID: number;
+  folderUID: string;
+  ruleGroup: string;
+  title: string;
+  condition: string;
+  data: Datum[];
+  updated: Date;
+  noDataState: string;
+  execErrState: string;
+  for: string;
+  annotations: Annotations;
+  isPaused: boolean;
+};
+
+export type Annotations = {
+  __dashboardUid__: string;
+  __panelId__: string;
+  description: string;
+  summary: string;
+};
+
+export type Datum = {
+  refId: string;
+  queryType: string;
+  relativeTimeRange: RelativeTimeRange;
+  datasourceUid: string;
+  model: Model;
+};
+
+export type Model = {
+  editorMode?: string;
+  expr?: string;
+  instant?: boolean;
+  intervalMs: number;
+  legendFormat?: string;
+  maxDataPoints: number;
+  range?: boolean;
+  refId: string;
+  conditions?: Condition[];
+  datasource?: Datasource;
+  expression?: string;
+  reducer?: string;
+  type?: string;
+};
+
+export type Condition = {
+  evaluator: Evaluator;
+  operator: Operator;
+  query: Query;
+  reducer: Evaluator;
+  type: string;
+};
+
+export type Evaluator = {
+  params: number[];
+  type: string;
+};
+
+export type Operator = {
+  type: string;
+};
+
+export type Query = {
+  params: string[];
+};
+
+export type Datasource = {
+  type: string;
+  uid: string;
+};
+
+export type RelativeTimeRange = {
+  from: number;
+  to: number;
+};
 
 export interface Contact {
   uid: string;
