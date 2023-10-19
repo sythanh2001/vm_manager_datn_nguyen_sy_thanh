@@ -10,9 +10,14 @@ import Link from "next/link";
 import { DNSRecord } from "@/lib/cloudflare";
 import { DefaultLoading } from "@/components/Loading";
 import CollapseInfoSide from "@/components/Collapse/CollapseInfoTable";
-import { Save } from "@mui/icons-material";
+import { Save, Settings } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AlertRule as AlertRule, Contact } from "@/lib/grafana";
+import { CollapseTable } from "@/components/Collapse/CollapseTable";
+import { MachineTypeGroup } from "@/app/(admin_route)/compute/create/page";
+import { protos } from "@google-cloud/compute";
+import { Dictionary } from "lodash";
+import _ from "lodash";
 export interface IPageProps {}
 
 function RowDiskInfo({
@@ -171,6 +176,128 @@ function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
   );
 }
 
+function ChangeMachineType({
+  zone,
+  onMachineTypeChange,
+}: {
+  zone: string;
+  onMachineTypeChange?: (value: any) => any;
+}) {
+  const [machineListCol] = React.useState([
+    "Dòng",
+    "Mô tả",
+    "vCPUs",
+    "RAM",
+    "Nền tảng",
+  ]);
+  const [machineTypeGroupsDisplay, setMachineTypeGroupsDisplay] =
+    React.useState<MachineTypeGroup[]>();
+  const [machineImageList, setMachineImageList] =
+    React.useState<google.cloud.compute.v1.IMachineImage[]>();
+  const [machineTypeListGroups, setMachineTypeListGroups] =
+    React.useState<Dictionary<protos.google.cloud.compute.v1.IMachineType[]>>();
+  // input
+  const [machineGroupSelected, setMachineGroupSelected] =
+    React.useState<string>();
+  const [machineTypeSelected, setMachineTypeSelected] = React.useState();
+  const [regionSelected, setRegionSelected] = React.useState<string>();
+  //handler
+  const onMachineTypeGroupChange = React.useCallback((groupName: string) => {
+    setMachineGroupSelected(groupName);
+  }, []);
+  const clearAllMachineData = () => {
+    setMachineGroupSelected(undefined);
+    setMachineTypeGroupsDisplay(undefined);
+    setMachineTypeSelected(undefined);
+    return true;
+  };
+  const onZoneChange = (zoneName: string) => {
+    clearAllMachineData();
+
+    axios
+      .get(`/api/instance/machine-type?zone=${zoneName}`)
+      .then(
+        ({ data }: { data: protos.google.cloud.compute.v1.IMachineType[] }) => {
+          const machineGroupsData = _.groupBy(data, (x) => {
+            return x.name?.split("-").at(0);
+          });
+          setMachineTypeListGroups(machineGroupsData);
+          const machineGroupsDisplayData: MachineTypeGroup[] = [];
+          for (let key in machineGroupsData) {
+            let value = machineGroupsData[key];
+            machineGroupsDisplayData.push({
+              series: key,
+              description: "",
+              vCPUs: `${_.minBy(value, "guestCpus")?.guestCpus} - ${
+                _.maxBy(value, "guestCpus")?.guestCpus
+              }`,
+              memory: `${(
+                (_.minBy(value, "memoryMb")?.memoryMb as number) / 1024
+              ).toFixed(1)} - ${(
+                (_.maxBy(value, "memoryMb")?.memoryMb as number) / 1024
+              ).toFixed(1)} GB`,
+            });
+          }
+          setMachineTypeGroupsDisplay(machineGroupsDisplayData);
+        }
+      );
+  };
+  React.useEffect(() => {
+    onZoneChange(zone);
+  }, [zone]);
+  return (
+    <div className="space-y-3">
+      {/* Machine type groups */}
+      <CollapseTable
+        title="Các nhóm máy"
+        cols={["Nhóm", "vCPUs", "RAM"]}
+        data={machineTypeGroupsDisplay}
+        radioName="radio-machine-group"
+        rowkeys={[
+          { key: "series", render: (e) => e.toUpperCase() },
+          { key: "vCPUs" },
+          { key: "memory" },
+        ]}
+        noDataText={!zone ? "Vui lòng chọn vùng trước" : "Loading..."}
+        onRadioCheckedChange={(x) => onMachineTypeGroupChange(x.series)}
+      ></CollapseTable>
+      {/* Machine list */}
+      <CollapseTable
+        title="Cấu hình máy"
+        cols={machineListCol}
+        radioName="radio-machine-list"
+        noDataText="Vui lòng chọn nhóm máy trước"
+        data={
+          machineTypeListGroups && machineGroupSelected
+            ? machineTypeListGroups[machineGroupSelected]
+            : undefined
+        }
+        rowkeys={[
+          {
+            key: "name",
+            render: (x: string) =>
+              x.substring(
+                (machineGroupSelected?.length as number) + 1,
+                x.length
+              ),
+          },
+          { key: "description" },
+          { key: "guestCpus" },
+          {
+            key: "memoryMb",
+            render(x) {
+              return (x / 1027).toFixed(1) + " GB";
+            },
+          },
+        ]}
+        onRadioCheckedChange={(x) =>
+          onMachineTypeChange && onMachineTypeChange(x.name)
+        }
+      ></CollapseTable>
+    </div>
+  );
+}
+
 export default function Page(props: IPageProps) {
   const sp = useSearchParams();
   const router = useRouter();
@@ -185,6 +312,7 @@ export default function Page(props: IPageProps) {
 
   const [cloudflareDNS, setCloudflareDNS] = React.useState<DNSRecord>();
   const [loadingSyncDNS, setLoadingSyncDNS] = React.useState(false);
+  const [newMachineType, setNewMachineType] = React.useState<string>();
   const onUpdateContact = (addresses: string) => {
     if (addresses == alertContact?.settings.addresses) {
       return;
@@ -238,14 +366,55 @@ export default function Page(props: IPageProps) {
         );
         setZone(data.instance.zone?.split("/").pop());
         setCloudflareDNS(data.cloudflare);
-        setAlertRules(data.grafana.alertRules);
-        setAlertContact(data.grafana.defaultContact);
+        if (data.grafana) {
+          setAlertRules(data.grafana.alertRules);
+          setAlertContact(data.grafana.defaultContact);
+        }
       });
   }, [sp]);
 
   if (!i) return <DefaultLoading></DefaultLoading>;
   return (
     <div className="">
+      <dialog id="modal_change_machine_type" className="modal">
+        <div className="modal-box w-11/12 max-w-5xl">
+          <h3 className="font-bold text-lg text-red-500">
+            Khi thay đổi cấu hình máy sẽ tự động khởi dộng lại VM
+          </h3>
+
+          <ChangeMachineType
+            zone={zone as string}
+            onMachineTypeChange={(e) => {
+              setNewMachineType(e);
+            }}
+          ></ChangeMachineType>
+          <div className="modal-action">
+            <form method="dialog" className="space-x-5">
+              {/* if there is a button, it will close the modal */}
+              <button
+                className="btn btn-success"
+                onClick={(e) => {
+                  const res = axios.get("/api/instance/edit/machine-type", {
+                    params: {
+                      zone,
+                      instanceName: i.name,
+                      machineType: newMachineType,
+                    },
+                  });
+                  toast.promise(res, {
+                    pending: "Đang thay đổi cấu hình",
+                    success: "Thay đổi cấu hình thành công",
+                    error: "Thay đổi cấu hình thất bại",
+                  });
+                }}
+              >
+                Xác nhận
+              </button>
+              <button className="btn btn-error">Huỷ</button>
+            </form>
+          </div>
+        </div>
+      </dialog>
       <div className="space-y-5">
         {/* Basic info */}
         <CollapseInfoSide
@@ -377,7 +546,24 @@ export default function Page(props: IPageProps) {
         <CollapseInfoSide
           title="Cấu hình máy"
           data={[
-            { label: "Kiểu máy", value: i.machineType?.split("/").pop() },
+            {
+              label: "Kiểu máy",
+              value: (
+                <div>
+                  {i.machineType?.split("/").pop()}
+                  <Settings
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      // @ts-ignore
+                      document
+                        .getElementById("modal_change_machine_type")
+                        // @ts-ignore
+                        .showModal();
+                    }}
+                  ></Settings>
+                </div>
+              ),
+            },
             { label: "CPU platform", value: i.cpuPlatform },
             { label: "Minimum CPU platform", value: i.minCpuPlatform },
             {
@@ -386,6 +572,7 @@ export default function Page(props: IPageProps) {
             },
           ]}
         ></CollapseInfoSide>
+
         {/* Storage */}
         {i.disks && (
           <div className="collapse collapse-arrow bg-base-200">

@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       );
       resData = { ...resData, grafana: { alertRules, defaultContact } };
     } catch (error) {
-      console.log("🚀 ~ file: route.ts:49 ~ GET ~ error:", error);
+      // console.log("🚀 ~ file: route.ts:49 ~ GET ~ error:", error);
     }
   }
 
