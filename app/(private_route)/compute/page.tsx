@@ -8,9 +8,13 @@ import {
   Autorenew,
   CheckCircleOutline,
   Dashboard,
+  Delete,
+  Info,
   MoreVert,
   PauseCircleOutline,
+  PlayCircle,
   Refresh,
+  RestartAlt,
   StopCircle,
 } from "@mui/icons-material/";
 
@@ -178,11 +182,13 @@ function InstanceList() {
                             }
                             onClick={actionHandler}
                           >
+                            <PlayCircle></PlayCircle>
                             Khởi động
                           </button>
                         </li>
                         <li>
                           <button value="stopInstance" onClick={actionHandler}>
+                            <StopCircle></StopCircle>
                             Dừng
                           </button>
                         </li>
@@ -191,11 +197,13 @@ function InstanceList() {
                             value="suspendInstance"
                             onClick={actionHandler}
                           >
+                            <PauseCircleOutline></PauseCircleOutline>
                             Tạm dừng
                           </button>
                         </li>
                         <li>
                           <button value="resetInstance" onClick={actionHandler}>
+                            <RestartAlt></RestartAlt>
                             Khởi động lại
                           </button>
                         </li>
@@ -204,6 +212,7 @@ function InstanceList() {
                             value="deleteInstance"
                             onClick={actionHandler}
                           >
+                            <Delete></Delete>
                             Xoá
                           </button>
                         </li>
@@ -211,7 +220,7 @@ function InstanceList() {
                           <Link
                             href={`/compute/detail?zone=${zoneName}&instanceName=${i.name}`}
                           >
-                            Chi tiết
+                            <Info></Info>Chi tiết
                           </Link>
                         </li>
                       </ul>

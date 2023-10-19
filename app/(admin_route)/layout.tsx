@@ -11,7 +11,6 @@ export default async function PrivateLayout({
 }: React.PropsWithChildren) {
   const session = await getServerSession(authOptions);
   const user = session?.user as UserDocument;
-  console.log("🚀 ~ file: layout.tsx:13 ~ user:", user);
   const isAdmin = user?.role === "admin";
   if (!isAdmin) return <div>This page only admin access</div>;
 

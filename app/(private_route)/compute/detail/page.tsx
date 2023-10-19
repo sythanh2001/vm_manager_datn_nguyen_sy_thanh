@@ -10,7 +10,15 @@ import Link from "next/link";
 import { DNSRecord } from "@/lib/cloudflare";
 import { DefaultLoading } from "@/components/Loading";
 import CollapseInfoSide from "@/components/Collapse/CollapseInfoTable";
-import { Save, Settings } from "@mui/icons-material";
+import {
+  Delete,
+  PauseCircleOutline,
+  PlayCircle,
+  RestartAlt,
+  Save,
+  Settings,
+  StopCircle,
+} from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AlertRule as AlertRule, Contact } from "@/lib/grafana";
 import { CollapseTable } from "@/components/Collapse/CollapseTable";
@@ -342,6 +350,20 @@ export default function Page(props: IPageProps) {
         }
       });
   };
+  const actionHandler = (e: any) => {
+    const actionName = e.target.value;
+    const res = util.InstanceActionHandler(
+      actionName,
+      i?.name as string,
+      zone as string
+    );
+
+    toast.promise(res, {
+      pending: `Đang ${actionName}`,
+      success: `${actionName} thành công`,
+      error: `${actionName} thất bại`,
+    });
+  };
   React.useEffect(() => {
     axios
       .get(
@@ -353,7 +375,6 @@ export default function Page(props: IPageProps) {
         if (!data.name) {
           console.log("request fail");
         }
-        console.log("🚀 ~ file: page.tsx:120 ~ .then ~ data:", data);
         setInstance(data.instance);
 
         const domainTemp = data.instance.metadata?.items?.find(
@@ -415,6 +436,28 @@ export default function Page(props: IPageProps) {
           </div>
         </div>
       </dialog>
+      {/* Controller */}
+      <div className="flex space-x-3">
+        <button className="btn" onClick={actionHandler} value="resetInstance">
+          <RestartAlt></RestartAlt>Khởi dộng lại
+        </button>
+        <button
+          className="btn"
+          onClick={actionHandler}
+          value={i.status == "SUSPENDED" ? "resumeInstance" : "startInstance"}
+        >
+          <PlayCircle></PlayCircle>Khởi dộng
+        </button>
+        <button className="btn" onClick={actionHandler} value="stopInstance">
+          <StopCircle></StopCircle>Dừng
+        </button>
+        <button className="btn" onClick={actionHandler} value="suspendInstance">
+          <PauseCircleOutline></PauseCircleOutline>Tạm Dừng
+        </button>
+        <button className="btn" onClick={actionHandler} value="deleteInstance">
+          <Delete></Delete>Xoá
+        </button>
+      </div>
       <div className="space-y-5">
         {/* Basic info */}
         <CollapseInfoSide

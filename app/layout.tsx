@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <AuthProvider>
       <html lang="en">
-        <body>
+        <body className="bg-base-200">
           <ToastContainer theme="dark"></ToastContainer>
           <Providers>
             <DefaultSidebar>

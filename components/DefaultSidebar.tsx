@@ -60,7 +60,7 @@ export function DefaultSidebar({ children }: DefaultSidebarProps) {
   return (
     <div className="drawer drawer-open">
       <input id="my-drawer" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content">
+      <div className="drawer-content bg-base-200">
         {/* Page content here */}
         {children}
       </div>
