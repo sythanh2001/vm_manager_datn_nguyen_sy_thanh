@@ -14,6 +14,7 @@ import {
   Delete,
   PauseCircleOutline,
   PlayCircle,
+  Refresh,
   RestartAlt,
   Save,
   Settings,
@@ -364,8 +365,8 @@ export default function Page(props: IPageProps) {
       error: `${actionName} thất bại`,
     });
   };
-  React.useEffect(() => {
-    axios
+  const updateData = (isRefresh?: boolean) => {
+    const res = axios
       .get(
         `/api/instance/detail?zone=${sp.get("zone")}&instanceName=${sp.get(
           "instanceName"
@@ -392,7 +393,16 @@ export default function Page(props: IPageProps) {
           setAlertContact(data.grafana.defaultContact);
         }
       });
-  }, [sp]);
+
+    isRefresh &&
+      toast.promise(res, {
+        pending: "Đang làm mới...",
+        success: "Làm mới thành công",
+      });
+  };
+  React.useEffect(() => {
+    updateData();
+  }, []);
 
   if (!i) return <DefaultLoading></DefaultLoading>;
   return (
@@ -438,6 +448,9 @@ export default function Page(props: IPageProps) {
       </dialog>
       {/* Controller */}
       <div className="flex space-x-3">
+        <button className="btn btn-primary" onClick={(e) => updateData(true)}>
+          <Refresh></Refresh>Làm mới
+        </button>
         <button className="btn" onClick={actionHandler} value="resetInstance">
           <RestartAlt></RestartAlt>Khởi dộng lại
         </button>
@@ -455,7 +468,7 @@ export default function Page(props: IPageProps) {
           <PauseCircleOutline></PauseCircleOutline>Tạm Dừng
         </button>
         <button className="btn" onClick={actionHandler} value="deleteInstance">
-          <Delete></Delete>Xoá
+          <Delete className="text-red-500"></Delete>Xoá
         </button>
       </div>
       <div className="space-y-5">
