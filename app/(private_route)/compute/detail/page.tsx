@@ -253,6 +253,7 @@ function ChangeMachineType({
   };
   React.useEffect(() => {
     onZoneChange(zone);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zone]);
   return (
     <div className="space-y-3">
@@ -377,7 +378,7 @@ export default function Page(props: IPageProps) {
           console.log("request fail");
         }
         setInstance(data.instance);
-
+       
         const domainTemp = data.instance.metadata?.items?.find(
           (x: any) => x.key == "domain"
         )?.value as string;
@@ -402,6 +403,7 @@ export default function Page(props: IPageProps) {
   };
   React.useEffect(() => {
     updateData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!i) return <DefaultLoading></DefaultLoading>;
