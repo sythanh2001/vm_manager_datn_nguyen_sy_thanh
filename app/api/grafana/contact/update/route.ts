@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
   }
   const session = await getServerSession(authOptions);
   if (!session?.user) return util.ResponseErrorAuth();
+
+  
   grafana.changeBaseURL(baseUrl);
   const oldContact = (await grafana.getAllContactPoints()).data.find(
     (x: any) => x.name == "manager"

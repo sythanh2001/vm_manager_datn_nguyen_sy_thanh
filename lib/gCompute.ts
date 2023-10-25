@@ -115,9 +115,7 @@ const resizeInstanceDisk = async function (
   diskName: string,
   newDiskSizeGb: number
 ) {
-  console.log("🚀 ~ file: gCompute.ts:106 ~ newDiskSizeGb:", newDiskSizeGb);
   const token = await getAccessToken();
-  console.log("🚀 ~ file: gCompute.ts:125 ~ token:", token);
   try {
     // Get information about the existing disk
     const response = await axios.get(
@@ -129,7 +127,6 @@ const resizeInstanceDisk = async function (
       }
     );
     const disk = response.data;
-    console.log("🚀 ~ file: gCompute.ts:118 ~ disk:", disk);
     if (!disk) {
       return { error: `Disk ${diskName} not found.` };
     }
@@ -138,8 +135,6 @@ const resizeInstanceDisk = async function (
     const resizeRequest = {
       sizeGb: newDiskSizeGb,
     };
-    console.log("🚀 ~ file: gCompute.ts:130 ~ resizeRequest:", resizeRequest);
-
     // Resize the disk
     console.log(`Resizing disk ${diskName} to ${newDiskSizeGb} GB...`);
     const resizeResponse = await axios.post(
@@ -176,9 +171,7 @@ const changeInstanceMachineType = async function (
         zone: zone,
         instance: instanceName,
       });
-    } catch (error) {
-      console.log("🚀 ~ file: gCompute.ts:180 ~ error:", error);
-    }
+    } catch (error) {}
 
     // Wait for the instance to be in a stopped state
     let instanceStatus;
@@ -232,8 +225,134 @@ const changeInstanceMachineType = async function (
     instancesClient.close();
   }
 };
+const updateInstanceMetadataWithAxios = async function (
+  zone: string,
+  instanceName: string,
+  key: string,
+  value: string,
+  email: string
+) {
+  const instancesClient = new InstancesClient({ credentials });
 
+  try {
+    const [instance] = await instancesClient.get({
+      project: defaultConfig.projectId,
+      zone: zone,
+      instance: instanceName,
+    });
+    const isManager = gc.containsEmail(instance, email);
+    if (!isManager) return { error: "You are not a manager of this instance" };
+
+    if (instance.metadata && instance.metadata.items) {
+      // Find the metadata item with the specified key
+      const metadataItem = instance.metadata.items.find(
+        (item) => item.key === key
+      );
+
+      if (metadataItem) {
+        // Update the value of the existing metadata item
+        metadataItem.value = value;
+      } else {
+        // If the key doesn't exist, create a new metadata item
+        instance.metadata.items.push({ key, value });
+      }
+
+      // Create a request to set the updated metadata
+      const updateRequest = instance.metadata
+
+      // Send the request to update the metadata using Axios
+      const token = await getAccessToken();
+      const response = await axios.post(
+        `https://compute.googleapis.com/compute/v1/projects/${defaultConfig.projectId}/zones/${zone}/instances/${instanceName}/setMetadata`,
+        updateRequest,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log(
+        `Updated metadata for instance ${instanceName}: ${key}=${value}`
+      );
+      return response.data;
+    } else {
+      console.error(`Instance ${instanceName} has no metadata items.`);
+      throw new Error("Instance metadata not found.");
+    }
+  } catch (err) {
+    console.error(
+      `Error updating instance metadata for ${instanceName}: ${err}`
+    );
+    throw err;
+  } finally {
+    instancesClient.close();
+  }
+};
+const updateInstanceMetadata = async function (
+  zone: string,
+  instanceName: string,
+  key: string,
+  value: string,
+  email: string
+) {
+  const instancesClient = new InstancesClient({ credentials });
+
+  try {
+    const [instance] = await instancesClient.get({
+      project: defaultConfig.projectId,
+      zone: zone,
+      instance: instanceName,
+    });
+    const isManager = gc.containsEmail(instance, email);
+    if (!isManager) return { error: "Your are not a manager this instance" };
+    // Kiểm tra dấu vân tay hiện tại của metadata
+
+    if (instance.metadata && instance.metadata.items) {
+      // Find the metadata item with the specified key
+      const metadataItem = instance.metadata.items.find(
+        (item) => item.key === key
+      );
+
+      if (metadataItem) {
+        // Update the value of the existing metadata item
+        metadataItem.value = value;
+      } else {
+        // If the key doesn't exist, create a new metadata item
+        instance.metadata.items.push({ key, value });
+      }
+      // Create a request to set the updated metadata
+      const updateRequest = {
+        project: defaultConfig.projectId,
+        zone: zone,
+        instance: instanceName,
+        instancesSetMetadataRequestResource: {
+          metadata: instance.metadata,
+        },
+      } as google.cloud.compute.v1.ISetMetadataInstanceRequest;
+      // Send the request to update the metadata
+      const [response] = await instancesClient.setMetadata(updateRequest);
+
+      console.log(
+        `Updated metadata for instance ${instanceName}: ${key}=${value}`
+      );
+      return response;
+    } else {
+      console.error(`Instance ${instanceName} has no metadata items.`);
+      throw new Error("Instance metadata not found.");
+    }
+  } catch (err) {
+    console.error(
+      `Error updating instance metadata for ${instanceName}: ${err}`
+    );
+    throw err;
+  } finally {
+    instancesClient.close();
+  }
+};
 const gc = {
+  updateInstanceMetadataWithAxios,
+  updateInstanceMetadata,
   getRegions,
   getZones,
   getMachineTypes,
@@ -322,7 +441,6 @@ const gc = {
     const operationsClient = new ZoneOperationsClient({ credentials });
     // Wait for the create operation to complete.
     while (operation.status !== "DONE") {
-      console.log("🚀 ~ file: gCompute.ts:288 ~ operation:", operation);
       try {
         console.log("Wating operation done");
 
@@ -331,16 +449,12 @@ const gc = {
           project: defaultConfig.projectId,
           zone: operation.zone.split("/").pop(),
         });
-      } catch (error) {
-        console.log("🚀 ~ file: gCompute.ts:297 ~ error:", error);
-      }
+      } catch (error) {}
     }
     try {
       await gc.resizeInstanceDisk(zone, instanceName, diskSizeGb);
       console.log("resize disk complete");
-    } catch (error) {
-      console.log("🚀 ~ file: gCompute.ts:322 ~ error:", error);
-    }
+    } catch (error) {}
 
     return await this.getInstanceInfo(zone, instanceName);
   },
