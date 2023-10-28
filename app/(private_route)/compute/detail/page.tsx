@@ -27,6 +27,8 @@ import { MachineTypeGroup } from "@/app/(admin_route)/compute/create/page";
 import { protos } from "@google-cloud/compute";
 import { Dictionary } from "lodash";
 import _ from "lodash";
+
+import Image from "next/image";
 export interface IPageProps {}
 
 function RowDiskInfo({
@@ -174,11 +176,41 @@ function RowAlertRule({
     </tr>
   );
 }
-function GrafanaIframe({ ip, id }: { ip: string; id: string }) {
+function GrafanaIframe({
+  ip,
+  id,
+  isImage,
+  className,
+}: {
+  ip: string;
+  id: string;
+  isImage?: boolean;
+  className?: string;
+}) {
+  const [imgSrc, setImgSrc] = React.useState(
+    `http://${ip}:3001/render/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}&width=220&height=150&v=0`
+  );
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setImgSrc((src) => {
+        const stage = src.indexOf("v=0") != -1;
+        return src.replace(`v=${stage ? 0 : 1}`, `v=${stage ? 1 : 0}`);
+      });
+    }, 60000);
+    return () => {
+      console.log("clearInterval ");
+
+      clearInterval(interval);
+    };
+  }, []);
+  if (isImage) {
+    return <img className={`w-full ${className}`} src={imgSrc}></img>;
+  }
   return (
     <iframe
       src={`http://${ip}:3001/d-solo/rYdddlPWk/node-exporter-full?orgId=1&panelId=${id}`}
-      className="w-full"
+      className={`w-full ${className}`}
       frameBorder="0"
       scrolling="no"
     ></iframe>
@@ -521,17 +553,53 @@ export default function Page(props: IPageProps) {
               Quản lý tài nguyên
             </div>
             <div className="collapse-content">
-              <div className="flex">
-                <GrafanaIframe ip={externalIP} id="14"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="75"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="23"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="15"></GrafanaIframe>
+              <div className="flex flex-row">
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="14"
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="75"
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="23"
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="15"
+                ></GrafanaIframe>
               </div>
-              <div className="flex">
-                <GrafanaIframe ip={externalIP} id="20"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="16"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="154"></GrafanaIframe>
-                <GrafanaIframe ip={externalIP} id="19"></GrafanaIframe>
+              <div className="flex flex-row">
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="20"
+                  isImage={true}
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="16"
+                  isImage={true}
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="154"
+                  isImage={true}
+                ></GrafanaIframe>
+                <GrafanaIframe
+                  className="basis-1/4"
+                  ip={externalIP}
+                  id="19"
+                  isImage={true}
+                ></GrafanaIframe>
               </div>
               <div className="flex">
                 <GrafanaIframe ip={externalIP} id="77"></GrafanaIframe>

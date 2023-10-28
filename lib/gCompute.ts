@@ -258,7 +258,7 @@ const updateInstanceMetadataWithAxios = async function (
       }
 
       // Create a request to set the updated metadata
-      const updateRequest = instance.metadata
+      const updateRequest = instance.metadata;
 
       // Send the request to update the metadata using Axios
       const token = await getAccessToken();
