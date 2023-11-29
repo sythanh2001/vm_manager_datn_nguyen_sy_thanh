@@ -6,6 +6,7 @@ import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
+import { getToken } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -71,6 +72,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+
+  
   callbacks: {
     async jwt({ token, user, session, trigger }) {
       if (user) {
@@ -79,6 +82,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token, user }) {
+
       let customSessionUserData = {
         ...session,
         user: { ...session.user, role: token.role, id: token.sub },
@@ -91,3 +95,4 @@ export const authOptions: NextAuthOptions = {
 
 const authHandler = NextAuth(authOptions);
 export { authHandler as GET, authHandler as POST };
+

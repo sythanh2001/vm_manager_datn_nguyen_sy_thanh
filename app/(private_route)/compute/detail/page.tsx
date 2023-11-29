@@ -713,7 +713,7 @@ export default function Page(props: IPageProps) {
                         "Tên",
                         "Boot",
                         "Interface Type",
-                        "Kích thước (GB)",
+                        "Kích thước (Gb)",
                         "Khu vực",
                         "Kiểu",
                         "Kiến trúc",

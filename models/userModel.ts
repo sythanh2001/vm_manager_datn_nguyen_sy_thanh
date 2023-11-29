@@ -21,6 +21,7 @@ const userSchema = new Schema<UserDocument, {}, Methods>({
   role: { type: String, enum: ["user", "admin", "root"], default: "user" },
 });
 
+//Hash the password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   try {
@@ -32,6 +33,7 @@ userSchema.pre("save", async function (next) {
   }
 });
 
+//Compare password
 userSchema.methods.comparePassword = async function (password) {
   try {
     return await bcrypt.compare(password, this.password);

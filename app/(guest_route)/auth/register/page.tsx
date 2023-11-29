@@ -122,6 +122,10 @@ const Register = () => {
           >
             Đăng ký
           </button>
+          <button className="btn" onClick={()=> router.back()} 
+          >
+            Quay lại
+          </button>
         </form>
       </div>
     </div>
